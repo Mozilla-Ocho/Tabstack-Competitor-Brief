@@ -1,8 +1,8 @@
 # Competitor Brief
 
-You shipped a product. Now you have to out-position competitors who have marketing teams you don't. This gives you their whole playbook from one URL: what they ship, what their users actually complain about, and the opening you can own.
+Competitor Brief turns two URLs, your product and a competitor's, into a cited competitive intelligence report: their snapshot, positioning, product, pricing, target customer, recent activity, hiring signals, and what real users actually say, ending with how to position against them.
 
-It's a starter app, so it's the foundation you build on, not a throwaway script. Every brief runs on [Tabstack](https://tabstack.ai), which returns finished output from the live web in a single call.
+It's a Stripe Projects build template. Agents run the full brief from the CLI; humans get the same brief as a web app. Every section is a live [Tabstack](https://tabstack.ai) call; the research runs come cited.
 
 ## Agent-first: `stripe projects build`
 

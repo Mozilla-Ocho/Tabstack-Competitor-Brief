@@ -4,6 +4,7 @@ import {
   pricingSchema,
   messagingSchema,
   strengthsSchema,
+  icpSchema,
   type ResearchResult,
 } from './schemas'
 
@@ -120,9 +121,23 @@ export async function collectHiring(client: Tabstack, url: string) {
     stream as never,
     (d) => (d as { finalAnswer?: unknown })?.finalAnswer,
   )
+  const text = typeof answer === 'string' ? answer.trim() : ''
+  // The automation can hit navigation limits or find no careers page. Don't
+  // surface raw failure narration; show a clean, useful message instead.
+  const looksFailed = !text || /abort|error|domain limit|cannot|could not|unable|no public careers/i.test(text)
   return {
-    summary: typeof answer === 'string' && answer ? answer : 'No public roles found.',
+    summary: looksFailed ? 'No public careers page or open roles found for this company.' : text,
   }
+}
+
+export function collectICP(client: Tabstack, url: string) {
+  return client.generate.json({
+    url,
+    json_schema: icpSchema,
+    instructions:
+      'Based on this page, describe who this company sells to: their ideal customer profile ' +
+      'and their primary customer segments, personas, or industries.',
+  } as never)
 }
 
 export function collectMessaging(client: Tabstack, url: string) {

@@ -10,6 +10,7 @@ import {
   collectMessaging,
   collectStrengths,
   collectHowToWin,
+  collectICP,
 } from './collectors'
 
 type Task = { id: SectionId; run: () => Promise<unknown> }
@@ -39,6 +40,7 @@ export async function* buildBrief(
     { id: 'pricing', run: () => collectPricing(client, url) },
     { id: 'activity', run: () => collectActivity(client, url) },
     { id: 'sentiment', run: () => collectSentiment(client, url) },
+    { id: 'icp', run: () => collectICP(client, url) },
     { id: 'hiring', run: () => collectHiring(client, url) },
     { id: 'positioning', run: () => collectMessaging(client, url) },
     { id: 'strengths', run: () => collectStrengths(client, url) },
@@ -59,12 +61,6 @@ export async function* buildBrief(
       yield { id: tasks[i].id, status: 'error', message: String(reason?.message ?? r.reason) }
     }
   }
-
-  // ICP is derived from the snapshot research (no extra call).
-  yield { id: 'icp', status: 'pending' }
-  yield snapshot
-    ? { id: 'icp', status: 'done', data: { note: 'Derived from the research snapshot above.', report: snapshot.report } }
-    : { id: 'icp', status: 'error', message: 'No snapshot available' }
 
   // Sources come from the snapshot's cited pages.
   yield { id: 'sources', status: 'pending' }

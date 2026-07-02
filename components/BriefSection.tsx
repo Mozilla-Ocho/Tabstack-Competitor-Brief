@@ -48,6 +48,17 @@ function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
     )
   }
 
+  if (Array.isArray(d.segments)) {
+    return (
+      <div className="space-y-3">
+        {typeof d.summary === 'string' && d.summary && (
+          <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
+        )}
+        {d.segments.length > 0 && <Tags items={d.segments} />}
+      </div>
+    )
+  }
+
   if (typeof d.summary === 'string') return <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
 
   if (typeof d.content === 'string')

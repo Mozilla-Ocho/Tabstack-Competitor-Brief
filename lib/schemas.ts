@@ -110,3 +110,18 @@ export const strengthsSchema = {
     },
   },
 } as const
+
+export const icpSchema = {
+  type: 'object',
+  properties: {
+    summary: {
+      type: 'string',
+      description: 'One or two sentences on who this company sells to',
+    },
+    segments: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Primary customer segments, personas, or industries they target',
+    },
+  },
+} as const

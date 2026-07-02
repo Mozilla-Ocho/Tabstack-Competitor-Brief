@@ -14,6 +14,13 @@ function sectionToMarkdown(id: SectionId, data: unknown): string {
     return sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')
   }
 
+  if (Array.isArray(d.segments)) {
+    const parts: string[] = []
+    if (typeof d.summary === 'string' && d.summary) parts.push(d.summary)
+    if (d.segments.length) parts.push(d.segments.map((s) => `- ${s}`).join('\n'))
+    return parts.join('\n\n') || '_No data returned for this section._'
+  }
+
   if (typeof d.summary === 'string') return d.summary.trim()
 
   if (typeof d.content === 'string') return d.content.trim()

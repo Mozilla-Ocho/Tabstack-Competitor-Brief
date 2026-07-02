@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-paper: #f6f2e9;
@@ -26,7 +27,6 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Fine paper grain: two low-alpha radial dots tiled small. */
   background-image:
     radial-gradient(rgba(31, 27, 22, 0.025) 1px, transparent 1px),
     radial-gradient(rgba(31, 27, 22, 0.02) 1px, transparent 1px);
@@ -34,55 +34,77 @@ body {
   background-position: 0 0, 3px 4px;
 }
 
-/* Report prose rendered from markdown. */
-.prose-brief {
-  font-family: var(--font-sans), sans-serif;
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: #35302a;
+/* Brand tuning for markdown rendered via @tailwindcss/typography. */
+.prose {
+  --tw-prose-body: #35302a;
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bullets: var(--color-line);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-hr: var(--color-line);
 }
-.prose-brief p {
-  margin-bottom: 0.85rem;
-}
-.prose-brief p:last-child {
-  margin-bottom: 0;
-}
-.prose-brief strong {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-.prose-brief ul {
-  list-style: disc;
-  padding-left: 1.25rem;
-  margin-bottom: 0.85rem;
-}
-.prose-brief li {
-  margin-bottom: 0.3rem;
-}
-.prose-brief a {
-  color: var(--color-accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.prose-brief h1,
-.prose-brief h2,
-.prose-brief h3 {
+.prose :where(h1, h2, h3):not(:where([class~="not-prose"] *)) {
   font-family: var(--font-display), serif;
   font-weight: 500;
-  color: var(--color-ink);
-  margin: 1rem 0 0.5rem;
-  font-size: 1.05rem;
+}
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  text-underline-offset: 2px;
+}
+/* Keep blog/report images capped to the card and softly rounded (was
+   `.prose-brief img` before the typography refactor). */
+.prose :where(img):not(:where([class~="not-prose"] *)) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+.prose-invert {
+  --tw-prose-invert-links: var(--color-accent-soft);
 }
 
-/* Inverted variant for the hero payoff block. */
-.prose-invert {
-  color: rgba(246, 242, 233, 0.82);
+/* Inline citation marker: superscript [n] that jumps to the Sources list. */
+.brief-cite {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7em;
+  font-weight: 500;
+  vertical-align: super;
+  line-height: 0;
+  padding: 0 0.1em;
+  color: var(--color-accent);
+  text-decoration: none;
+  cursor: pointer;
 }
-.prose-invert strong {
-  color: #fff;
+.brief-cite::before {
+  content: '[';
 }
-.prose-invert a {
+.brief-cite::after {
+  content: ']';
+}
+.brief-cite:hover {
+  text-decoration: underline;
+}
+.prose-invert .brief-cite {
   color: var(--color-accent-soft);
+}
+
+/* Smooth scroll to a cited source and outline the active one. Respect users
+   who prefer reduced motion — they get an instant jump. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+.brief-source {
+  scroll-margin-top: 1.5rem;
+  transition:
+    background-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+.brief-source:target {
+  background-color: color-mix(in srgb, var(--color-accent-soft) 45%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
 }
 
 @keyframes brief-rise {

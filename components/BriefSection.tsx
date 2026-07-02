@@ -1,12 +1,56 @@
 'use client'
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { type SectionEvent } from '@/lib/schemas'
+import { linkifyCitations, type CiteMap, type Source } from '@/lib/citations'
 
-function Markdown({ text, invert }: { text: string; invert?: boolean }) {
+// Custom link renderer. Citation links (href `#source-n`) render as a small
+// superscript `[n]` that jumps to the Sources list; other in-page anchors
+// (e.g. GFM footnotes) stay in-page; only true external links open a new tab.
+// We set anchor attributes explicitly and never spread react-markdown's props —
+// that would leak its `node` hast object onto the DOM element.
+const mdComponents: Components = {
+  a({ href, children }) {
+    if (href?.startsWith('#source-')) {
+      return (
+        <a href={href} className="brief-cite" aria-label={`Jump to source ${children}`}>
+          {children}
+        </a>
+      )
+    }
+    if (href?.startsWith('#')) {
+      return <a href={href}>{children}</a>
+    }
+    return (
+      <a href={href} target="_blank" rel="noreferrer">
+        {children}
+      </a>
+    )
+  },
+}
+
+function Markdown({
+  text,
+  invert,
+  sources,
+  citeMap,
+}: {
+  text: string
+  invert?: boolean
+  sources?: Source[]
+  citeMap?: CiteMap
+}) {
+  const body = useMemo(
+    () => (sources && citeMap ? linkifyCitations(text, sources, citeMap) : text),
+    [text, sources, citeMap],
+  )
   return (
-    <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    <div className={`prose prose-sm max-w-none ${invert ? 'prose-invert' : 'prose-neutral'}`}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+        {body}
+      </ReactMarkdown>
     </div>
   )
 }
@@ -26,18 +70,36 @@ function Tags({ items }: { items: unknown[] }) {
   )
 }
 
-function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
+function SectionBody({
+  data,
+  invert,
+  citeMap,
+}: {
+  data: unknown
+  invert?: boolean
+  citeMap?: CiteMap
+}) {
   const d = (data ?? {}) as Record<string, unknown>
 
-  if (typeof d.report === 'string' && d.report) return <Markdown text={d.report} invert={invert} />
+  if (typeof d.report === 'string' && d.report)
+    return (
+      <Markdown
+        text={d.report}
+        invert={invert}
+        sources={Array.isArray(d.sources) ? (d.sources as Source[]) : undefined}
+        citeMap={citeMap}
+      />
+    )
 
   if (Array.isArray(d.sources)) {
-    const sources = d.sources as { title: string; url: string }[]
+    const sources = d.sources as Source[]
     if (!sources.length) return <p className="text-sm text-muted">No sources cited.</p>
     return (
-      <ol className="space-y-2 text-sm">
+      <ol className="space-y-1 text-sm">
         {sources.map((s, i) => (
-          <li key={i} className="flex gap-3">
+          // `id` is the citation anchor target; `:target` (globals.css) outlines
+          // the active source when a [n] marker links here.
+          <li key={i} id={`source-${i + 1}`} className="brief-source flex gap-3 rounded-md px-2 py-1">
             <span className="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
             <a className="text-accent underline decoration-line underline-offset-2 hover:decoration-accent" href={s.url} target="_blank" rel="noreferrer">
               {s.title}
@@ -156,13 +218,40 @@ function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
 }
 
 function StatusTag({ status }: { status: string }) {
-  const label = status === 'pending' ? 'Gathering' : status === 'error' ? 'Unavailable' : status === 'done' ? 'Ready' : ''
-  const color = status === 'error' ? 'text-muted' : status === 'done' ? 'text-accent' : 'text-muted'
+  const active = status === 'pending' || status === 'progress'
+  const label =
+    status === 'progress'
+      ? 'Working'
+      : status === 'pending'
+        ? 'Gathering'
+        : status === 'error'
+          ? 'Unavailable'
+          : status === 'done'
+            ? 'Ready'
+            : ''
+  const color = status === 'done' ? 'text-accent' : 'text-muted'
   return (
     <span className={`flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest ${color}`}>
-      {status === 'pending' && <span className="h-1.5 w-1.5 animate-brief-pulse rounded-full bg-accent" />}
+      {active && <span className="h-1.5 w-1.5 animate-brief-pulse rounded-full bg-accent" />}
       {label}
     </span>
+  )
+}
+
+/** Live status line shown while a section runs, above its skeleton. */
+function Working({ message, invert }: { message?: string; invert?: boolean }) {
+  return (
+    <div className="space-y-3">
+      {message && (
+        <p
+          className={`font-mono text-xs ${invert ? 'text-paper/70' : 'text-muted'}`}
+          aria-live="polite"
+        >
+          {message}
+        </p>
+      )}
+      <SkeletonLines invert={invert} />
+    </div>
   )
 }
 
@@ -171,11 +260,13 @@ export function BriefSection({
   title,
   hero,
   event,
+  citeMap,
 }: {
   index: number
   title: string
   hero?: boolean
   event?: SectionEvent
+  citeMap?: CiteMap
 }) {
   const status = event?.status ?? 'idle'
   const num = String(index).padStart(2, '0')
@@ -190,11 +281,13 @@ export function BriefSection({
           <StatusTag status={status} />
         </div>
         <h2 className="mb-5 font-display text-3xl leading-tight text-paper">{title}</h2>
-        {status === 'pending' && <SkeletonLines invert />}
+        {(status === 'pending' || status === 'progress') && (
+          <Working message={event?.message} invert />
+        )}
         {status === 'error' && (
           <p className="text-sm text-paper/60">Could not synthesize this section. {event?.message}</p>
         )}
-        {status === 'done' && <SectionBody data={event?.data} invert />}
+        {status === 'done' && <SectionBody data={event?.data} invert citeMap={citeMap} />}
       </section>
     )
   }
@@ -208,11 +301,11 @@ export function BriefSection({
         </div>
         <StatusTag status={status} />
       </div>
-      {status === 'pending' && <SkeletonLines />}
+      {(status === 'pending' || status === 'progress') && <Working message={event?.message} />}
       {status === 'error' && (
         <p className="text-sm text-muted">Could not retrieve this section. {event?.message}</p>
       )}
-      {status === 'done' && <SectionBody data={event?.data} />}
+      {status === 'done' && <SectionBody data={event?.data} citeMap={citeMap} />}
     </section>
   )
 }

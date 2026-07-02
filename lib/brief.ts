@@ -13,58 +13,101 @@ import {
   collectICP,
 } from './collectors'
 
-type Task = { id: SectionId; run: () => Promise<unknown> }
+type OnProgress = (message: string) => void
+type Task = { id: SectionId; run: (onProgress: OnProgress) => Promise<unknown> }
 
 /**
- * Orchestrates the full competitor brief. Yields a `pending` event per section,
- * then a `done` or `error` event as each result lands. A failure in any single
- * section becomes an `error` event and never aborts the brief.
+ * A minimal single-consumer async queue. Tasks run concurrently and `push`
+ * events (pending / progress / done / error) as they happen; the generator
+ * drains them in arrival order so live progress from every section interleaves.
+ */
+function channel<T>() {
+  const queue: T[] = []
+  let wake: (() => void) | null = null
+  let closed = false
+  return {
+    push(value: T) {
+      queue.push(value)
+      wake?.()
+      wake = null
+    },
+    close() {
+      closed = true
+      wake?.()
+      wake = null
+    },
+    async *drain(): AsyncGenerator<T> {
+      for (;;) {
+        if (queue.length) {
+          yield queue.shift() as T
+          continue
+        }
+        if (closed) return
+        await new Promise<void>((resolve) => (wake = resolve))
+      }
+    },
+  }
+}
+
+/**
+ * Orchestrates the full competitor brief. Every section starts `pending`, emits
+ * `progress` events with the latest Tabstack status while it runs (research and
+ * automate sections only — extract/generate calls don't stream), then lands on
+ * `done` or `error`. A failure in any single section never aborts the brief.
  */
 export async function* buildBrief(
   client: Tabstack,
   url: string,
   selfUrl: string,
 ): AsyncGenerator<SectionEvent> {
-  // Snapshot runs first: it also feeds the ICP and Sources sections.
-  yield { id: 'snapshot', status: 'pending' }
-  let snapshot: ResearchResult | null = null
-  try {
-    snapshot = await collectSnapshot(client, url)
-    yield { id: 'snapshot', status: 'done', data: { report: snapshot.report } }
-  } catch (e) {
-    yield { id: 'snapshot', status: 'error', message: (e as Error).message }
-  }
+  const ch = channel<SectionEvent>()
 
   const tasks: Task[] = [
+    { id: 'snapshot', run: (p) => collectSnapshot(client, url, p) },
     { id: 'product', run: () => collectProduct(client, url) },
     { id: 'pricing', run: () => collectPricing(client, url) },
     { id: 'activity', run: () => collectActivity(client, url) },
-    { id: 'sentiment', run: () => collectSentiment(client, url) },
+    { id: 'sentiment', run: (p) => collectSentiment(client, url, p) },
     { id: 'icp', run: () => collectICP(client, url) },
-    { id: 'hiring', run: () => collectHiring(client, url) },
+    { id: 'hiring', run: (p) => collectHiring(client, url, p) },
     { id: 'positioning', run: () => collectMessaging(client, url) },
     { id: 'strengths', run: () => collectStrengths(client, url) },
-    { id: 'howToWin', run: () => collectHowToWin(client, url, selfUrl) },
+    { id: 'howToWin', run: (p) => collectHowToWin(client, url, selfUrl, p) },
   ]
 
-  for (const t of tasks) yield { id: t.id, status: 'pending' }
+  for (const t of tasks) ch.push({ id: t.id, status: 'pending' })
+  ch.push({ id: 'sources', status: 'pending' })
 
-  const settled = await Promise.allSettled(
-    tasks.map(async (t) => ({ id: t.id, data: await t.run() })),
+  // The Sources section is derived from the snapshot's cited pages.
+  let snapshot: ResearchResult | null = null
+
+  const all = Promise.allSettled(
+    tasks.map(async (t) => {
+      const onProgress: OnProgress = (message) =>
+        ch.push({ id: t.id, status: 'progress', message })
+      try {
+        const data = await t.run(onProgress)
+        if (t.id === 'snapshot') {
+          snapshot = data as ResearchResult
+          // Snapshot's sources are shown in their own section, not here.
+          ch.push({ id: 'snapshot', status: 'done', data: { report: snapshot.report } })
+        } else {
+          ch.push({ id: t.id, status: 'done', data })
+        }
+      } catch (e) {
+        ch.push({ id: t.id, status: 'error', message: (e as Error).message })
+      }
+    }),
   )
-  for (let i = 0; i < tasks.length; i++) {
-    const r = settled[i]
-    if (r.status === 'fulfilled') {
-      yield { id: tasks[i].id, status: 'done', data: r.value.data }
-    } else {
-      const reason = r.reason as { message?: string } | undefined
-      yield { id: tasks[i].id, status: 'error', message: String(reason?.message ?? r.reason) }
-    }
-  }
 
-  // Sources come from the snapshot's cited pages.
-  yield { id: 'sources', status: 'pending' }
-  yield snapshot
-    ? { id: 'sources', status: 'done', data: { sources: snapshot.sources } }
-    : { id: 'sources', status: 'error', message: 'No sources available' }
+  all.then(() => {
+    ch.push(
+      snapshot
+        ? { id: 'sources', status: 'done', data: { sources: snapshot.sources } }
+        : { id: 'sources', status: 'error', message: 'No sources available' },
+    )
+    ch.close()
+  })
+
+  yield* ch.drain()
 }

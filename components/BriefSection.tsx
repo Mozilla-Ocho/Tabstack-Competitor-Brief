@@ -156,13 +156,40 @@ function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
 }
 
 function StatusTag({ status }: { status: string }) {
-  const label = status === 'pending' ? 'Gathering' : status === 'error' ? 'Unavailable' : status === 'done' ? 'Ready' : ''
-  const color = status === 'error' ? 'text-muted' : status === 'done' ? 'text-accent' : 'text-muted'
+  const active = status === 'pending' || status === 'progress'
+  const label =
+    status === 'progress'
+      ? 'Working'
+      : status === 'pending'
+        ? 'Gathering'
+        : status === 'error'
+          ? 'Unavailable'
+          : status === 'done'
+            ? 'Ready'
+            : ''
+  const color = status === 'done' ? 'text-accent' : 'text-muted'
   return (
     <span className={`flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest ${color}`}>
-      {status === 'pending' && <span className="h-1.5 w-1.5 animate-brief-pulse rounded-full bg-accent" />}
+      {active && <span className="h-1.5 w-1.5 animate-brief-pulse rounded-full bg-accent" />}
       {label}
     </span>
+  )
+}
+
+/** Live status line shown while a section runs, above its skeleton. */
+function Working({ message, invert }: { message?: string; invert?: boolean }) {
+  return (
+    <div className="space-y-3">
+      {message && (
+        <p
+          className={`font-mono text-xs ${invert ? 'text-paper/70' : 'text-muted'}`}
+          aria-live="polite"
+        >
+          {message}
+        </p>
+      )}
+      <SkeletonLines invert={invert} />
+    </div>
   )
 }
 
@@ -190,7 +217,9 @@ export function BriefSection({
           <StatusTag status={status} />
         </div>
         <h2 className="mb-5 font-display text-3xl leading-tight text-paper">{title}</h2>
-        {status === 'pending' && <SkeletonLines invert />}
+        {(status === 'pending' || status === 'progress') && (
+          <Working message={event?.message} invert />
+        )}
         {status === 'error' && (
           <p className="text-sm text-paper/60">Could not synthesize this section. {event?.message}</p>
         )}
@@ -208,7 +237,7 @@ export function BriefSection({
         </div>
         <StatusTag status={status} />
       </div>
-      {status === 'pending' && <SkeletonLines />}
+      {(status === 'pending' || status === 'progress') && <Working message={event?.message} />}
       {status === 'error' && (
         <p className="text-sm text-muted">Could not retrieve this section. {event?.message}</p>
       )}

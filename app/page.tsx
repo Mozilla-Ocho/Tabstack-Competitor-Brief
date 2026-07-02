@@ -274,7 +274,10 @@ export default function Home() {
       )}
 
       <footer className="mt-16 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-display text-lg text-ink">Ship your agent, not the infra.</p>
+        <div>
+          <p className="font-display text-lg text-ink">Keep tabs on your competitors.</p>
+          <p className="mt-1 font-mono text-xs uppercase tracking-widest text-muted">Powered by Tabstack</p>
+        </div>
         <a
           href="https://console.tabstack.ai/signup?utm_source=competitor-brief&utm_medium=template&utm_campaign=stripe-projects"
           target="_blank"

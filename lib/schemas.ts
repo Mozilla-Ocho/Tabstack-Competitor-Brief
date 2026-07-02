@@ -27,7 +27,7 @@ export const SECTION_ORDER: SectionId[] = [
 
 export type SectionEvent = {
   id: SectionId
-  status: 'pending' | 'done' | 'error'
+  status: 'pending' | 'progress' | 'done' | 'error'
   data?: unknown
   message?: string
 }

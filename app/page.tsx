@@ -1,9 +1,18 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SECTION_ORDER, type SectionEvent, type SectionId } from '@/lib/schemas'
 import { SECTION_META } from '@/lib/sectionMeta'
 import { BriefSection } from '@/components/BriefSection'
 import { toMarkdown, toJSON, hostSlug } from '@/lib/exporters'
+
+const STORAGE_KEY = 'competitor-brief:last'
+
+type Saved = {
+  url: string
+  selfUrl: string
+  submittedUrl: string
+  events: Record<string, SectionEvent>
+}
 
 export default function Home() {
   const [url, setUrl] = useState('')
@@ -13,6 +22,50 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [events, setEvents] = useState<Record<string, SectionEvent>>({})
   const [copied, setCopied] = useState<'md' | 'json' | null>(null)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restore the last brief from localStorage on mount (client-only).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as Saved
+        setUrl(saved.url ?? '')
+        setSelfUrl(saved.selfUrl ?? '')
+        setSubmittedUrl(saved.submittedUrl ?? '')
+        // A brief saved mid-run has sections stuck in pending/progress that will
+        // never resolve after a reload. Mark them as interrupted so they don't
+        // spin forever.
+        const events = saved.events ?? {}
+        for (const id of Object.keys(events)) {
+          const e = events[id]
+          if (e.status === 'pending' || e.status === 'progress') {
+            events[id] = { id: e.id, status: 'error', message: 'Interrupted — rebuild to refresh.' }
+          }
+        }
+        setEvents(events)
+      }
+    } catch {
+      // Corrupt/blocked storage — start fresh.
+    }
+    setHydrated(true)
+  }, [])
+
+  // Persist whenever the brief changes (after hydration, so we don't clobber
+  // saved data with the initial empty state).
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      if (Object.keys(events).length === 0) {
+        localStorage.removeItem(STORAGE_KEY)
+        return
+      }
+      const saved: Saved = { url, selfUrl, submittedUrl, events }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+    } catch {
+      // Storage full or blocked — non-fatal.
+    }
+  }, [hydrated, url, selfUrl, submittedUrl, events])
 
   const doneCount = Object.values(events).filter((e) => e.status === 'done').length
 
@@ -34,6 +87,19 @@ export default function Home() {
     }
     setCopied(kind)
     setTimeout(() => setCopied(null), 1800)
+  }
+
+  function clearBrief() {
+    setEvents({})
+    setSubmittedUrl('')
+    setError(null)
+    // The persist effect removes the storage key when events go empty, but call
+    // it directly too in case storage was written outside this session.
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // blocked storage — non-fatal
+    }
   }
 
   function downloadMarkdown() {
@@ -171,6 +237,13 @@ export default function Home() {
             className="rounded-md border border-line bg-panel px-3 py-1.5 text-sm text-ink transition-colors hover:border-accent"
           >
             {copied === 'json' ? 'Copied ✓' : 'Copy as JSON'}
+          </button>
+          <button
+            onClick={clearBrief}
+            disabled={running}
+            className="ml-auto rounded-md border border-line bg-panel px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-ink disabled:opacity-50"
+          >
+            Clear
           </button>
         </div>
       )}

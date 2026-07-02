@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SECTION_ORDER, type SectionEvent, type SectionId } from '@/lib/schemas'
 import { SECTION_META } from '@/lib/sectionMeta'
 import { BriefSection } from '@/components/BriefSection'
 import { toMarkdown, toJSON, hostSlug } from '@/lib/exporters'
+import { buildCiteMap, type Source } from '@/lib/citations'
 
 const STORAGE_KEY = 'competitor-brief:last'
 
@@ -155,6 +156,15 @@ export default function Home() {
 
   const started = Object.keys(events).length > 0
 
+  // The Sources section holds the global, deduped source list. Map each URL to
+  // its 1-based number so section reports can relabel their [n] markers to match
+  // and link into it. Memoized on the sources event so it isn't rebuilt (and
+  // re-passed as a fresh Map) on every streaming re-render.
+  const citeMap = useMemo(() => {
+    const globalSources = (events.sources?.data as { sources?: Source[] } | undefined)?.sources ?? []
+    return buildCiteMap(globalSources)
+  }, [events.sources])
+
   return (
     <main className="mx-auto max-w-2xl px-5 py-16 sm:py-24">
       <header className="border-b border-line pb-8">
@@ -257,6 +267,7 @@ export default function Home() {
               title={SECTION_META[id].title}
               hero={SECTION_META[id].hero}
               event={events[id]}
+              citeMap={citeMap}
             />
           ))}
         </div>

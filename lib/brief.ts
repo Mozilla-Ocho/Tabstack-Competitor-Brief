@@ -90,11 +90,14 @@ export async function* buildBrief(
         const data = await t.run(onProgress)
         results[i] = data
         if (t.id === 'snapshot') {
-          // Snapshot's cited pages surface in the Sources section, not here.
+          // Snapshot renders only its report, but its cited pages ride along so
+          // the client can resolve the report's [n] markers to the global
+          // Sources list (they also feed that list below).
+          const snap = data as ResearchResult
           ch.push({
             id: 'snapshot',
             status: 'done',
-            data: { report: (data as ResearchResult).report },
+            data: { report: snap.report, sources: snap.sources },
           })
         } else {
           ch.push({ id: t.id, status: 'done', data })

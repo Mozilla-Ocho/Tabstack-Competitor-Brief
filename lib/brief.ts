@@ -11,6 +11,7 @@ import {
   collectStrengths,
   collectHowToWin,
   collectICP,
+  withRetry,
 } from './collectors'
 
 type Task = { id: SectionId; run: () => Promise<unknown> }
@@ -50,7 +51,7 @@ export async function* buildBrief(
   for (const t of tasks) yield { id: t.id, status: 'pending' }
 
   const settled = await Promise.allSettled(
-    tasks.map(async (t) => ({ id: t.id, data: await t.run() })),
+    tasks.map(async (t) => ({ id: t.id, data: await withRetry(t.run) })),
   )
   for (let i = 0; i < tasks.length; i++) {
     const r = settled[i]

@@ -12,6 +12,22 @@ import {
  * Iterate an SDK SSE stream (/research or /automate) to its terminal event and
  * return the picked payload. Throws on an `error` event.
  */
+/**
+ * Retry a call a few times before giving up, so a section only shows
+ * "Unavailable" after every attempt fails (fast search can miss transiently).
+ */
+export async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw lastErr
+}
+
 async function drainStream(
   stream: AsyncIterable<{ event: string; data?: unknown }>,
   pick: (data: unknown) => unknown,
@@ -57,26 +73,22 @@ async function runFast(client: Tabstack, query: string): Promise<ResearchResult>
  * Run a /research query in `fast` mode and normalize it to { report, sources }.
  * Fast is the only mode used: it returns quickly enough to run inside free
  * serverless tiers (Vercel, Netlify). Deeper modes need long-running
- * infrastructure this template intentionally avoids. If a fast run errors or
- * comes back empty, we retry fast once before letting the section degrade.
+ * infrastructure this template intentionally avoids. Retries are handled by the
+ * `withRetry` wrapper around each section, so this runs a single attempt.
  */
 async function researchToReport(client: Tabstack, query: string): Promise<ResearchResult> {
-  try {
-    const result = await runFast(client, query)
-    if (result.report.trim()) return result
-  } catch {
-    // fall through to a single retry
-  }
   return runFast(client, query)
 }
 
 export async function collectSnapshot(client: Tabstack, url: string): Promise<ResearchResult> {
   const brand = brandFromUrl(url)
   try {
-    const r = await researchToReport(
-      client,
-      `Give a competitive intelligence snapshot of ${brand} (${url}): what they do, their ` +
-        `category, when they were founded, HQ, team size, and funding.`,
+    const r = await withRetry(() =>
+      researchToReport(
+        client,
+        `Give a competitive intelligence snapshot of ${brand} (${url}): what they do, their ` +
+          `category, when they were founded, HQ, team size, and funding.`,
+      ),
     )
     if (r.report.trim()) return r
   } catch {
@@ -144,10 +156,10 @@ export async function collectHiring(client: Tabstack, url: string) {
   const careersUrl = new URL('/careers', url).toString()
   const stream = await client.agent.automate({
     task:
-      'Look at this public careers page. In two or three sentences, summarize their hiring: how ' +
-      'many open roles, which teams or functions they are concentrated in, and what that signals ' +
-      'about where they are investing. Do not list every individual role. If there are no public ' +
-      'roles, say so.',
+      'Look at this public careers page. First, one sentence summarizing where they are ' +
+      'investing (which teams). Then a markdown bullet list grouped by team or function, one ' +
+      'bullet per team in the form "- **Team (count):** example roles". One bullet per team, ' +
+      'not one per role. If there are no public roles, say so.',
     url: careersUrl,
   } as never)
   const answer = await drainStream(

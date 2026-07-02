@@ -88,8 +88,11 @@ export async function* buildBrief(
       const onProgress: OnProgress = (message) =>
         ch.push({ id: t.id, status: 'progress', message })
       try {
-        // Retry a few times before the section degrades to Unavailable.
-        const data = await withRetry(() => t.run(onProgress))
+        // Retry a few times before the section degrades to Unavailable. Snapshot
+        // is exempt: it already retries its research internally and falls back to
+        // a homepage read, so wrapping it here would compound the attempts.
+        const data =
+          t.id === 'snapshot' ? await t.run(onProgress) : await withRetry(() => t.run(onProgress))
         results[i] = data
         if (t.id === 'snapshot') {
           // Snapshot renders only its report, but its cited pages ride along so

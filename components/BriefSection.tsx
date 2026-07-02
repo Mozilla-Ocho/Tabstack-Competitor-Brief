@@ -329,7 +329,7 @@ export function BriefSection({
     return (
       <section className="animate-rise overflow-hidden rounded-2xl bg-ink p-8 text-paper shadow-[0_20px_50px_-20px_rgba(31,27,22,0.5)]">
         <div className="mb-4 flex items-center justify-between">
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-accent-soft">
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-white">
             {num} · The opening
           </span>
           <StatusTag status={status} />

@@ -1,4 +1,5 @@
 import type Tabstack from '@tabstack/sdk'
+import { APIError } from '@tabstack/sdk'
 import {
   productSchema,
   pricingSchema,
@@ -9,8 +10,28 @@ import {
 } from './schemas'
 
 /**
+ * Whether an error is worth retrying. Deterministic client errors — a missing
+ * page (404 on /pricing, /careers), auth (401/403), bad/unprocessable request
+ * (400/422) — will fail identically on every attempt, so we don't waste calls
+ * or latency on them. Transient failures (5xx, rate limits, request timeouts,
+ * connection errors) and non-API errors (e.g. a research stream `error` event)
+ * are retryable.
+ */
+export function isRetryable(err: unknown): boolean {
+  if (err instanceof APIError && typeof err.status === 'number') {
+    // 408 Request Timeout and 429 Too Many Requests are transient; other 4xx
+    // are deterministic client errors.
+    if (err.status === 408 || err.status === 429) return true
+    return err.status < 400 || err.status >= 500
+  }
+  return true
+}
+
+/**
  * Retry a call a few times before giving up, so a section only shows
  * "Unavailable" after every attempt fails (fast search can miss transiently).
+ * Stops early on a non-retryable error (see {@link isRetryable}) so a missing
+ * page doesn't burn every attempt.
  */
 export async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   let lastErr: unknown
@@ -19,6 +40,7 @@ export async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<
       return await fn()
     } catch (e) {
       lastErr = e
+      if (!isRetryable(e)) break
     }
   }
   throw lastErr

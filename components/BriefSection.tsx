@@ -47,7 +47,7 @@ function Markdown({
     [text, sources, citeMap],
   )
   return (
-    <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
+    <div className={`prose prose-sm max-w-none ${invert ? 'prose-invert' : 'prose-neutral'}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
         {body}
       </ReactMarkdown>

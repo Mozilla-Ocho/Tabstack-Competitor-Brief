@@ -6,14 +6,16 @@ export const maxDuration = 300
 
 export async function POST(req: Request) {
   let url: string
+  let selfUrl: string
   try {
     const body = await req.json()
     url = new URL(body.url).toString()
+    selfUrl = new URL(body.selfUrl).toString()
   } catch {
-    return new Response(JSON.stringify({ error: 'A valid competitor URL is required.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ error: 'A valid product URL and competitor URL are both required.' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    )
   }
 
   let client: ReturnType<typeof getClient>
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of buildBrief(client, url)) {
+        for await (const event of buildBrief(client, url, selfUrl)) {
           controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
         }
       } catch (e) {

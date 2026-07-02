@@ -19,7 +19,11 @@ type Task = { id: SectionId; run: () => Promise<unknown> }
  * then a `done` or `error` event as each result lands. A failure in any single
  * section becomes an `error` event and never aborts the brief.
  */
-export async function* buildBrief(client: Tabstack, url: string): AsyncGenerator<SectionEvent> {
+export async function* buildBrief(
+  client: Tabstack,
+  url: string,
+  selfUrl: string,
+): AsyncGenerator<SectionEvent> {
   // Snapshot runs first: it also feeds the ICP and Sources sections.
   yield { id: 'snapshot', status: 'pending' }
   let snapshot: ResearchResult | null = null
@@ -38,7 +42,7 @@ export async function* buildBrief(client: Tabstack, url: string): AsyncGenerator
     { id: 'hiring', run: () => collectHiring(client, url) },
     { id: 'positioning', run: () => collectMessaging(client, url) },
     { id: 'strengths', run: () => collectStrengths(client, url) },
-    { id: 'howToWin', run: () => collectHowToWin(client, url) },
+    { id: 'howToWin', run: () => collectHowToWin(client, url, selfUrl) },
   ]
 
   for (const t of tasks) yield { id: t.id, status: 'pending' }

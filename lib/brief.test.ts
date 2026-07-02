@@ -33,7 +33,7 @@ const okClient = {
 describe('buildBrief', () => {
   it('emits a done event for every section on the happy path', async () => {
     const done: string[] = []
-    for await (const e of buildBrief(okClient, 'https://acme.com')) {
+    for await (const e of buildBrief(okClient, 'https://acme.com', 'https://me.com')) {
       if (e.status === 'done') done.push(e.id)
     }
     expect(done).toEqual(
@@ -63,7 +63,7 @@ describe('buildBrief', () => {
       },
     } as never
     const events: Record<string, string> = {}
-    for await (const e of buildBrief(client, 'https://acme.com')) {
+    for await (const e of buildBrief(client, 'https://acme.com', 'https://me.com')) {
       if (e.status !== 'pending') events[e.id] = e.status
     }
     expect(events.hiring).toBe('error')

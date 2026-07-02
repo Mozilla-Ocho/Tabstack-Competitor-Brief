@@ -75,13 +75,18 @@ export function collectSentiment(client: Tabstack, url: string): Promise<Researc
   )
 }
 
-export function collectHowToWin(client: Tabstack, url: string): Promise<ResearchResult> {
+export function collectHowToWin(
+  client: Tabstack,
+  competitorUrl: string,
+  selfUrl: string,
+): Promise<ResearchResult> {
   return researchToReport(
     client,
-    `You are advising a founder who competes with the company at ${url} but cannot market well. ` +
-      `Using their positioning and what real users say about them (Reddit, Hacker News, ` +
-      `Product Hunt, reviews), identify the messaging gaps to exploit and what this company is ` +
-      `notably NOT saying. End with one recommended positioning statement the founder can act on.`,
+    `I run the product at ${selfUrl}. I compete with the company at ${competitorUrl}. ` +
+      `Compare the two. Using the competitor's positioning and what real users say about them ` +
+      `(Reddit, Hacker News, Product Hunt, reviews), tell me how to position ${selfUrl} against ` +
+      `them: the specific gaps to exploit, what the competitor is notably NOT saying, and one ` +
+      `recommended positioning statement I can act on.`,
   )
 }
 

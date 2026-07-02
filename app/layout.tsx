@@ -1,27 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Fraunces, JetBrains_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  axes: ["opsz", "SOFT"],
+// Tabstack brand fonts, matching tabstack.ai: Mozilla Headline for display,
+// Mozilla Text for body. Self-hosted variable woff2, same as the site.
+const mozillaHeadline = localFont({
+  src: [
+    { path: "../public/fonts/MozillaHeadline/MozillaHeadline-Variable.woff2", weight: "100 900", style: "normal" },
+    { path: "../public/fonts/MozillaHeadline/MozillaHeadlineItalic-Variable.woff2", weight: "100 900", style: "italic" },
+  ],
+  variable: "--font-mozilla-headline",
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
+const mozillaText = localFont({
+  src: [
+    { path: "../public/fonts/MozillaText/MozillaText-Variable.woff2", weight: "100 900", style: "normal" },
+    { path: "../public/fonts/MozillaText/MozillaTextItalic-Variable.woff2", weight: "100 900", style: "italic" },
+  ],
+  variable: "--font-mozilla-text",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Competitor Brief",
   description:
-    "Enter a competitor's URL and get a cited intelligence brief that ends with how to position against them.",
+    "Enter your product and a competitor's URL and get a cited intelligence brief that ends with how to position against them.",
 };
 
 export default function RootLayout({
@@ -32,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${mozillaHeadline.variable} ${mozillaText.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>

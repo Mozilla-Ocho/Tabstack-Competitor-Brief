@@ -9,9 +9,9 @@
   --color-accent: #c6379a;
   --color-accent-soft: #ffb3e8;
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-mozilla-headline);
+  --font-sans: var(--font-mozilla-text);
+  --font-mono: var(--font-geist-mono);
 }
 
 :root {

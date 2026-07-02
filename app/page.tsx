@@ -7,6 +7,7 @@ import { toMarkdown, toJSON, hostSlug } from '@/lib/exporters'
 
 export default function Home() {
   const [url, setUrl] = useState('')
+  const [selfUrl, setSelfUrl] = useState('')
   const [submittedUrl, setSubmittedUrl] = useState('')
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +43,7 @@ export default function Home() {
       const res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, selfUrl }),
       })
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({ error: 'Request failed.' }))
@@ -85,30 +86,45 @@ export default function Home() {
           Brief
         </h1>
         <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-muted">
-          Point it at a competitor. Get a cited field brief on who they are, what people say about
-          them, and, the part that matters, how to position against them.
+          Everything you need to out-position a competitor. Enter your product and theirs, then get
+          what they ship, what their users actually say, and where you win.
         </p>
       </header>
 
-      <form onSubmit={run} className="mt-8">
-        <label className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted">
-          Target URL
-        </label>
-        <div className="flex flex-col gap-3 sm:flex-row">
+      <form onSubmit={run} className="mt-8 space-y-4">
+        <div>
+          <label className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted">
+            Your product
+          </label>
           <input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            value={selfUrl}
+            onChange={(e) => setSelfUrl(e.target.value)}
             required
             type="url"
-            placeholder="https://tabstack.ai"
-            className="flex-1 rounded-lg border border-line bg-panel px-4 py-3 font-mono text-sm text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-accent"
+            placeholder="https://yourproduct.com"
+            className="w-full rounded-lg border border-line bg-panel px-4 py-3 font-mono text-sm text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-accent"
           />
-          <button
-            disabled={running}
-            className="rounded-lg bg-accent px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {running ? 'Building the brief…' : 'Build brief'}
-          </button>
+        </div>
+        <div>
+          <label className="mb-2 block font-mono text-xs uppercase tracking-widest text-muted">
+            Competitor
+          </label>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+              type="url"
+              placeholder="https://competitor.com"
+              className="flex-1 rounded-lg border border-line bg-panel px-4 py-3 font-mono text-sm text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-accent"
+            />
+            <button
+              disabled={running}
+              className="rounded-lg bg-accent px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {running ? 'Building the brief…' : 'Build brief'}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -158,12 +174,16 @@ export default function Home() {
         </div>
       )}
 
-      <footer className="mt-16 border-t border-line pt-6">
-        <p className="font-mono text-[0.7rem] uppercase leading-relaxed tracking-widest text-muted">
-          Every section is finished output from the live web
-          <br />
-          Powered by Tabstack · extract · generate · research · automate
-        </p>
+      <footer className="mt-16 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-display text-lg text-ink">Ship your agent, not the infra.</p>
+        <a
+          href="https://console.tabstack.ai/signup?utm_source=competitor-brief&utm_medium=template&utm_campaign=stripe-projects"
+          target="_blank"
+          rel="noreferrer"
+          className="shrink-0 font-mono text-xs uppercase tracking-widest text-accent underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+        >
+          Get a Tabstack key →
+        </a>
       </footer>
     </main>
   )

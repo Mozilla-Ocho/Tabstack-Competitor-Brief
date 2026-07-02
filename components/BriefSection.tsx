@@ -5,7 +5,7 @@ import { type SectionEvent } from '@/lib/schemas'
 
 function Markdown({ text, invert }: { text: string; invert?: boolean }) {
   return (
-    <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
+    <div className={`prose prose-sm max-w-none ${invert ? 'prose-invert' : 'prose-neutral'}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   )

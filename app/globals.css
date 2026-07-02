@@ -60,7 +60,18 @@ body {
   border-radius: 8px;
   margin: 0.5rem 0;
 }
+/* The `.prose` block above hardcodes light-mode body/heading colors, which
+   otherwise leak onto the dark hero card. Re-point them to light values so
+   invert text is readable on the dark background. */
 .prose-invert {
+  --tw-prose-body: color-mix(in srgb, var(--color-paper) 85%, transparent);
+  --tw-prose-headings: var(--color-paper);
+  --tw-prose-bold: var(--color-paper);
+  --tw-prose-links: var(--color-accent-soft);
+  --tw-prose-bullets: color-mix(in srgb, var(--color-paper) 40%, transparent);
+  --tw-prose-counters: color-mix(in srgb, var(--color-paper) 60%, transparent);
+  --tw-prose-quotes: var(--color-paper);
+  --tw-prose-hr: color-mix(in srgb, var(--color-paper) 20%, transparent);
   --tw-prose-invert-links: var(--color-accent-soft);
 }
 

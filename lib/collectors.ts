@@ -5,6 +5,7 @@ import {
   messagingSchema,
   strengthsSchema,
   icpSchema,
+  activitySchema,
   type ResearchResult,
 } from './schemas'
 
@@ -170,13 +171,9 @@ export function collectPricing(client: Tabstack, url: string) {
   return client.extract.json({ url: pricingUrl, json_schema: pricingSchema, effort: 'standard' } as never)
 }
 
-export async function collectActivity(client: Tabstack, url: string) {
+export function collectActivity(client: Tabstack, url: string) {
   const blogUrl = new URL('/blog', url).toString()
-  const res = (await client.extract.markdown({ url: blogUrl, metadata: true } as never)) as {
-    content?: string
-    metadata?: { title?: string }
-  }
-  return { content: res?.content ?? '', title: res?.metadata?.title ?? 'Recent activity' }
+  return client.extract.json({ url: blogUrl, json_schema: activitySchema, effort: 'standard' } as never)
 }
 
 export async function collectHiring(

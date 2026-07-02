@@ -21,6 +21,27 @@ function sectionToMarkdown(id: SectionId, data: unknown): string {
     return parts.join('\n\n') || '_No data returned for this section._'
   }
 
+  if (Array.isArray(d.posts)) {
+    const posts = (d.posts as { title?: string; url?: string; date?: string; summary?: string }[])
+      .filter((p) => p && (p.title || p.url))
+      .slice(0, 5)
+    const parts: string[] = []
+    if (typeof d.summary === 'string' && d.summary) parts.push(d.summary.trim())
+    if (posts.length)
+      parts.push(
+        posts
+          .map((p) => {
+            const title = p.title || p.url || 'Untitled'
+            const head = p.url ? `[${title}](${p.url})` : title
+            const date = p.date ? ` _(${p.date})_` : ''
+            const sum = p.summary ? ` — ${p.summary}` : ''
+            return `- **${head}**${date}${sum}`
+          })
+          .join('\n'),
+      )
+    return parts.join('\n\n') || '_No recent posts found._'
+  }
+
   if (typeof d.summary === 'string') return d.summary.trim()
 
   if (typeof d.content === 'string') return d.content.trim()

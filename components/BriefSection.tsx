@@ -55,6 +55,40 @@ function Markdown({
   )
 }
 
+type Post = { title?: string; url?: string; date?: string; summary?: string }
+
+function PostCard({ post }: { post: Post }) {
+  const title = post.title || post.url || 'Untitled'
+  const card = (
+    <>
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-display text-base leading-snug text-ink group-hover:text-accent">
+          {title}
+        </h3>
+        {post.date && (
+          <span className="shrink-0 font-mono text-xs text-muted">{post.date}</span>
+        )}
+      </div>
+      {post.summary && (
+        <p className="mt-1.5 text-sm leading-relaxed text-ink/70">{post.summary}</p>
+      )}
+    </>
+  )
+  const cls =
+    'group block rounded-lg border border-line bg-paper px-4 py-3 transition-colors hover:border-accent'
+  return (
+    <li>
+      {post.url ? (
+        <a href={post.url} target="_blank" rel="noreferrer" className={cls}>
+          {card}
+        </a>
+      ) : (
+        <div className={cls}>{card}</div>
+      )}
+    </li>
+  )
+}
+
 function Tags({ items }: { items: unknown[] }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -117,6 +151,26 @@ function SectionBody({
           <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
         )}
         {d.segments.length > 0 && <Tags items={d.segments} />}
+      </div>
+    )
+  }
+
+  if (Array.isArray(d.posts)) {
+    const posts = (d.posts as Post[]).filter((p) => p && (p.title || p.url)).slice(0, 5)
+    return (
+      <div className="space-y-3">
+        {typeof d.summary === 'string' && d.summary && (
+          <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
+        )}
+        {posts.length > 0 ? (
+          <ul className="grid gap-3">
+            {posts.map((p, i) => (
+              <PostCard key={i} post={p} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">No recent posts found.</p>
+        )}
       </div>
     )
   }

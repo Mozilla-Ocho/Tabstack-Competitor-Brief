@@ -52,8 +52,59 @@ body {
 .prose :where(a):not(:where([class~="not-prose"] *)) {
   text-underline-offset: 2px;
 }
+/* Keep blog/report images capped to the card and softly rounded (was
+   `.prose-brief img` before the typography refactor). */
+.prose :where(img):not(:where([class~="not-prose"] *)) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
 .prose-invert {
   --tw-prose-invert-links: var(--color-accent-soft);
+}
+
+/* Inline citation marker: superscript [n] that jumps to the Sources list. */
+.brief-cite {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7em;
+  font-weight: 500;
+  vertical-align: super;
+  line-height: 0;
+  padding: 0 0.1em;
+  color: var(--color-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.brief-cite::before {
+  content: '[';
+}
+.brief-cite::after {
+  content: ']';
+}
+.brief-cite:hover {
+  text-decoration: underline;
+}
+.prose-invert .brief-cite {
+  color: var(--color-accent-soft);
+}
+
+/* Smooth scroll to a cited source and outline the active one. Respect users
+   who prefer reduced motion — they get an instant jump. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+.brief-source {
+  scroll-margin-top: 1.5rem;
+  transition:
+    background-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+.brief-source:target {
+  background-color: color-mix(in srgb, var(--color-accent-soft) 45%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
 }
 
 @keyframes brief-rise {

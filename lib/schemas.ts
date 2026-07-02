@@ -27,15 +27,18 @@ export const SECTION_ORDER: SectionId[] = [
 
 export type SectionEvent = {
   id: SectionId
-  status: 'pending' | 'done' | 'error'
+  status: 'pending' | 'progress' | 'done' | 'error'
   data?: unknown
   message?: string
 }
 
+// A single cited page: its display title and URL.
+export type Source = { title: string; url: string }
+
 // Shape returned by every /research-backed section (snapshot, sentiment, howToWin).
 export type ResearchResult = {
   report: string
-  sources: { title: string; url: string }[]
+  sources: Source[]
 }
 
 export const productSchema = {

@@ -15,17 +15,24 @@ import {
 async function drainStream(
   stream: AsyncIterable<{ event: string; data?: unknown }>,
   pick: (data: unknown) => unknown,
+  onProgress?: (message: string) => void,
 ): Promise<unknown> {
   let result: unknown
   for await (const event of stream) {
     if (event.event === 'complete' || event.event === 'task:completed') {
       result = pick(event.data)
-    }
-    if (event.event === 'error') {
+    } else if (event.event === 'error') {
       const data = event.data as { error?: { message?: string }; message?: string } | undefined
       throw new Error(data?.error?.message || data?.message || 'stream error')
+    } else if (event.event === 'done') {
+      break
+    } else if (onProgress) {
+      // Every /research and /automate event carries a human-readable status in
+      // `data.message` (e.g. "Searching for reviews", "Reading pricing page").
+      // Surface it as live progress; ignore events without one.
+      const message = (event.data as { message?: string } | undefined)?.message
+      if (message) onProgress(message)
     }
-    if (event.event === 'done') break
   }
   return result
 }
@@ -41,9 +48,13 @@ function brandFromUrl(url: string): string {
   }
 }
 
-async function runFast(client: Tabstack, query: string): Promise<ResearchResult> {
+async function runFast(
+  client: Tabstack,
+  query: string,
+  onProgress?: (message: string) => void,
+): Promise<ResearchResult> {
   const stream = await client.agent.research({ query, mode: 'fast' } as never)
-  const data = (await drainStream(stream as never, (d) => d)) as
+  const data = (await drainStream(stream as never, (d) => d, onProgress)) as
     | { report?: string; metadata?: { citedPages?: { title?: string; url: string }[] } }
     | undefined
   const pages = data?.metadata?.citedPages ?? []
@@ -60,23 +71,32 @@ async function runFast(client: Tabstack, query: string): Promise<ResearchResult>
  * infrastructure this template intentionally avoids. If a fast run errors or
  * comes back empty, we retry fast once before letting the section degrade.
  */
-async function researchToReport(client: Tabstack, query: string): Promise<ResearchResult> {
+async function researchToReport(
+  client: Tabstack,
+  query: string,
+  onProgress?: (message: string) => void,
+): Promise<ResearchResult> {
   try {
-    const result = await runFast(client, query)
+    const result = await runFast(client, query, onProgress)
     if (result.report.trim()) return result
   } catch {
     // fall through to a single retry
   }
-  return runFast(client, query)
+  return runFast(client, query, onProgress)
 }
 
-export async function collectSnapshot(client: Tabstack, url: string): Promise<ResearchResult> {
+export async function collectSnapshot(
+  client: Tabstack,
+  url: string,
+  onProgress?: (message: string) => void,
+): Promise<ResearchResult> {
   const brand = brandFromUrl(url)
   try {
     const r = await researchToReport(
       client,
       `Give a competitive intelligence snapshot of ${brand} (${url}): what they do, their ` +
         `category, when they were founded, HQ, team size, and funding.`,
+      onProgress,
     )
     if (r.report.trim()) return r
   } catch {
@@ -96,7 +116,11 @@ export async function collectSnapshot(client: Tabstack, url: string): Promise<Re
   return { report: '', sources: [] }
 }
 
-export function collectSentiment(client: Tabstack, url: string): Promise<ResearchResult> {
+export function collectSentiment(
+  client: Tabstack,
+  url: string,
+  onProgress?: (message: string) => void,
+): Promise<ResearchResult> {
   const brand = brandFromUrl(url)
   return researchToReport(
     client,
@@ -104,6 +128,7 @@ export function collectSentiment(client: Tabstack, url: string): Promise<Researc
       `reviews, Reddit and Hacker News threads that mention them, and software review sites like ` +
       `G2 and Capterra. Summarize recurring praise and complaints. Treat their own website as ` +
       `not independent and say so if that is the only source.`,
+    onProgress,
   )
 }
 
@@ -111,6 +136,7 @@ export function collectHowToWin(
   client: Tabstack,
   competitorUrl: string,
   selfUrl: string,
+  onProgress?: (message: string) => void,
 ): Promise<ResearchResult> {
   return researchToReport(
     client,
@@ -119,6 +145,7 @@ export function collectHowToWin(
       `(Reddit, Hacker News, Product Hunt, reviews), tell me how to position ${selfUrl} against ` +
       `them: the specific gaps to exploit, what the competitor is notably NOT saying, and one ` +
       `recommended positioning statement I can act on.`,
+    onProgress,
   )
 }
 
@@ -140,7 +167,11 @@ export async function collectActivity(client: Tabstack, url: string) {
   return { content: res?.content ?? '', title: res?.metadata?.title ?? 'Recent activity' }
 }
 
-export async function collectHiring(client: Tabstack, url: string) {
+export async function collectHiring(
+  client: Tabstack,
+  url: string,
+  onProgress?: (message: string) => void,
+) {
   const careersUrl = new URL('/careers', url).toString()
   const stream = await client.agent.automate({
     task:
@@ -153,6 +184,7 @@ export async function collectHiring(client: Tabstack, url: string) {
   const answer = await drainStream(
     stream as never,
     (d) => (d as { finalAnswer?: unknown })?.finalAnswer,
+    onProgress,
   )
   const text = typeof answer === 'string' ? answer.trim() : ''
   // The automation can hit navigation limits or find no careers page. Don't

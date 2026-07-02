@@ -62,9 +62,19 @@ export async function* buildBrief(
     }
   }
 
-  // Sources come from the snapshot's cited pages.
+  // Sources aggregate every cited page across the research-backed sections
+  // (snapshot, sentiment, how-to-position), deduped by URL, so the section is
+  // populated whenever any research call cited a page.
+  const allSources = [...(snapshot?.sources ?? [])]
+  for (let i = 0; i < tasks.length; i++) {
+    const r = settled[i]
+    if (r.status === 'fulfilled') {
+      const d = r.value.data as { sources?: { title: string; url: string }[] } | undefined
+      if (Array.isArray(d?.sources)) allSources.push(...d.sources)
+    }
+  }
+  const seen = new Set<string>()
+  const sources = allSources.filter((s) => s?.url && !seen.has(s.url) && (seen.add(s.url), true))
   yield { id: 'sources', status: 'pending' }
-  yield snapshot
-    ? { id: 'sources', status: 'done', data: { sources: snapshot.sources } }
-    : { id: 'sources', status: 'error', message: 'No sources available' }
+  yield { id: 'sources', status: 'done', data: { sources } }
 }

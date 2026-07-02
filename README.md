@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), paste a competitor's URL, and watch the brief assemble section by section.
+Open [http://localhost:3000](http://localhost:3000), paste a competitor's URL (for example `https://tabstack.ai`), and watch the brief assemble section by section.
 
 You need a `TABSTACK_API_KEY`. If you scaffolded this through Stripe Projects (`stripe projects build`), it is provisioned for you. Otherwise, copy `.env.example` to `.env.local` and add a key from [tabstack.ai](https://tabstack.ai).
 

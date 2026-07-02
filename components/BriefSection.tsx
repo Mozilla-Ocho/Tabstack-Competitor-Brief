@@ -1,151 +1,218 @@
 'use client'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { type SectionEvent } from '@/lib/schemas'
 
-function StringList({ items }: { items: unknown[] }) {
+function Markdown({ text, invert }: { text: string; invert?: boolean }) {
   return (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-neutral-800">
-      {items.map((it, i) => (
-        <li key={i}>{typeof it === 'string' ? it : JSON.stringify(it)}</li>
-      ))}
-    </ul>
+    <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    </div>
   )
 }
 
-function SectionBody({ data }: { data: unknown }) {
+function Tags({ items }: { items: unknown[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((it, i) => (
+        <span
+          key={i}
+          className="rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink/80"
+        >
+          {typeof it === 'string' ? it : JSON.stringify(it)}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
   const d = (data ?? {}) as Record<string, unknown>
 
-  // /research-backed sections: report + optional sources.
-  if (typeof d.report === 'string' && d.report) {
-    return <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">{d.report}</p>
-  }
+  if (typeof d.report === 'string' && d.report) return <Markdown text={d.report} invert={invert} />
 
-  // Sources.
   if (Array.isArray(d.sources)) {
     const sources = d.sources as { title: string; url: string }[]
-    if (!sources.length) return <p className="text-sm text-neutral-500">No sources cited.</p>
+    if (!sources.length) return <p className="text-sm text-muted">No sources cited.</p>
     return (
-      <ul className="space-y-1 text-sm">
+      <ol className="space-y-2 text-sm">
         {sources.map((s, i) => (
-          <li key={i}>
-            <a className="text-blue-700 underline" href={s.url} target="_blank" rel="noreferrer">
+          <li key={i} className="flex gap-3">
+            <span className="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
+            <a className="text-accent underline decoration-line underline-offset-2 hover:decoration-accent" href={s.url} target="_blank" rel="noreferrer">
               {s.title}
             </a>
           </li>
         ))}
-      </ul>
+      </ol>
     )
   }
 
-  // Hiring summary.
-  if (typeof d.summary === 'string') {
-    return <p className="text-sm text-neutral-800">{d.summary}</p>
-  }
+  if (typeof d.summary === 'string') return <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
 
-  // Recent activity markdown.
-  if (typeof d.content === 'string') {
-    return (
-      <p className="whitespace-pre-wrap text-sm text-neutral-800">
-        {d.content.slice(0, 1200)}
-        {d.content.length > 1200 ? '…' : ''}
-      </p>
-    )
-  }
+  if (typeof d.content === 'string')
+    return <Markdown text={d.content.slice(0, 1400) + (d.content.length > 1400 ? '…' : '')} invert={invert} />
 
-  // Messaging.
   if (d.tagline || d.valueProps || d.messagingPillars) {
     return (
-      <div className="space-y-3 text-sm text-neutral-800">
-        {typeof d.tagline === 'string' && <p className="font-medium">{d.tagline}</p>}
-        {Array.isArray(d.valueProps) && <StringList items={d.valueProps} />}
-        {Array.isArray(d.messagingPillars) && <StringList items={d.messagingPillars} />}
+      <div className="space-y-4">
+        {typeof d.tagline === 'string' && (
+          <p className="font-display text-lg italic text-ink">&ldquo;{d.tagline}&rdquo;</p>
+        )}
+        {Array.isArray(d.valueProps) && d.valueProps.length > 0 && (
+          <div>
+            <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Value props</p>
+            <Tags items={d.valueProps} />
+          </div>
+        )}
+        {Array.isArray(d.messagingPillars) && d.messagingPillars.length > 0 && (
+          <div>
+            <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Messaging pillars</p>
+            <Tags items={d.messagingPillars} />
+          </div>
+        )}
       </div>
     )
   }
 
-  // Strengths & gaps.
   if (d.strengths || d.gaps) {
     return (
-      <div className="space-y-3 text-sm text-neutral-800">
+      <div className="grid gap-5 sm:grid-cols-2">
         {Array.isArray(d.strengths) && (
           <div>
-            <p className="mb-1 font-medium">Strengths</p>
-            <StringList items={d.strengths} />
+            <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Strengths</p>
+            <ul className="space-y-1.5 text-sm text-ink/85">
+              {d.strengths.map((s, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-accent">+</span>
+                  <span>{String(s)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {Array.isArray(d.gaps) && (
           <div>
-            <p className="mb-1 font-medium">Gaps</p>
-            <StringList items={d.gaps} />
+            <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Gaps</p>
+            <ul className="space-y-1.5 text-sm text-ink/85">
+              {d.gaps.map((g, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-muted">–</span>
+                  <span>{String(g)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
     )
   }
 
-  // Product.
   if (Array.isArray(d.products)) {
     const products = d.products as { name?: string; description?: string }[]
     return (
-      <ul className="space-y-2 text-sm text-neutral-800">
+      <ul className="divide-y divide-line">
         {products.map((p, i) => (
-          <li key={i}>
-            <span className="font-medium">{p.name}</span>
-            {p.description ? ` — ${p.description}` : ''}
+          <li key={i} className="py-2.5 first:pt-0 last:pb-0">
+            <span className="font-medium text-ink">{p.name}</span>
+            {p.description ? <span className="text-ink/70"> — {p.description}</span> : ''}
           </li>
         ))}
       </ul>
     )
   }
 
-  // Pricing.
   if (Array.isArray(d.tiers)) {
     const tiers = d.tiers as { name?: string; price?: string; highlights?: string[] }[]
     return (
-      <ul className="space-y-2 text-sm text-neutral-800">
+      <ul className="divide-y divide-line">
         {tiers.map((t, i) => (
-          <li key={i}>
-            <span className="font-medium">{t.name}</span>
-            {t.price ? ` — ${t.price}` : ''}
-            {Array.isArray(t.highlights) && t.highlights.length > 0 && (
-              <span className="text-neutral-600"> ({t.highlights.join(', ')})</span>
-            )}
+          <li key={i} className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+            <div>
+              <span className="font-medium text-ink">{t.name}</span>
+              {Array.isArray(t.highlights) && t.highlights.length > 0 && (
+                <span className="text-sm text-ink/60"> — {t.highlights.join(', ')}</span>
+              )}
+            </div>
+            {t.price && <span className="shrink-0 font-mono text-sm text-ink">{t.price}</span>}
           </li>
         ))}
       </ul>
     )
   }
 
-  return <pre className="whitespace-pre-wrap break-words text-xs text-neutral-600">{JSON.stringify(data, null, 2)}</pre>
+  return <p className="text-sm text-muted">No data returned for this section.</p>
+}
+
+function StatusTag({ status }: { status: string }) {
+  const label = status === 'pending' ? 'Gathering' : status === 'error' ? 'Unavailable' : status === 'done' ? 'Ready' : ''
+  const color = status === 'error' ? 'text-muted' : status === 'done' ? 'text-accent' : 'text-muted'
+  return (
+    <span className={`flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest ${color}`}>
+      {status === 'pending' && <span className="h-1.5 w-1.5 animate-brief-pulse rounded-full bg-accent" />}
+      {label}
+    </span>
+  )
 }
 
 export function BriefSection({
+  index,
   title,
   hero,
   event,
 }: {
+  index: number
   title: string
   hero?: boolean
   event?: SectionEvent
 }) {
   const status = event?.status ?? 'idle'
-  return (
-    <section className={`rounded-xl border p-5 ${hero ? 'border-black bg-neutral-50 shadow-sm' : 'border-neutral-200'}`}>
-      <div className="mb-2 flex items-center justify-between gap-4">
-        <h2 className={`font-semibold ${hero ? 'text-xl' : 'text-lg'}`}>{title}</h2>
-        <span className="shrink-0 text-xs uppercase tracking-wide text-neutral-500">
-          {status === 'pending' ? 'working…' : status === 'error' ? 'unavailable' : status === 'done' ? 'ready' : ''}
-        </span>
-      </div>
-      {status === 'pending' && (
-        <div className="space-y-2">
-          <div className="h-3 w-2/3 animate-pulse rounded bg-neutral-200" />
-          <div className="h-3 w-1/2 animate-pulse rounded bg-neutral-200" />
+  const num = String(index).padStart(2, '0')
+
+  if (hero) {
+    return (
+      <section className="animate-rise overflow-hidden rounded-2xl bg-ink p-8 text-paper shadow-[0_20px_50px_-20px_rgba(31,27,22,0.5)]">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-accent-soft">
+            {num} · The opening
+          </span>
+          <StatusTag status={status} />
         </div>
-      )}
+        <h2 className="mb-5 font-display text-3xl leading-tight text-paper">{title}</h2>
+        {status === 'pending' && <SkeletonLines invert />}
+        {status === 'error' && (
+          <p className="text-sm text-paper/60">Could not synthesize this section. {event?.message}</p>
+        )}
+        {status === 'done' && <SectionBody data={event?.data} invert />}
+      </section>
+    )
+  }
+
+  return (
+    <section className="animate-rise rounded-xl border border-line bg-panel p-6">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-xs text-muted">{num}</span>
+          <h2 className="font-display text-xl text-ink">{title}</h2>
+        </div>
+        <StatusTag status={status} />
+      </div>
+      {status === 'pending' && <SkeletonLines />}
       {status === 'error' && (
-        <p className="text-sm text-neutral-500">Could not retrieve this section. {event?.message}</p>
+        <p className="text-sm text-muted">Could not retrieve this section. {event?.message}</p>
       )}
       {status === 'done' && <SectionBody data={event?.data} />}
     </section>
+  )
+}
+
+function SkeletonLines({ invert }: { invert?: boolean }) {
+  const bar = invert ? 'bg-paper/15' : 'bg-line'
+  return (
+    <div className="space-y-2.5">
+      <div className={`h-3 w-full animate-brief-pulse rounded ${bar}`} />
+      <div className={`h-3 w-11/12 animate-brief-pulse rounded ${bar}`} />
+      <div className={`h-3 w-2/3 animate-brief-pulse rounded ${bar}`} />
+    </div>
   )
 }

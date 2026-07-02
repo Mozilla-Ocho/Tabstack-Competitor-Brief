@@ -31,11 +31,10 @@ async function drainStream(
 
 type ResearchMode = 'fast' | 'balanced'
 
-/** Run a /research query and normalize it to { report, sources }. */
-async function researchToReport(
+async function runResearch(
   client: Tabstack,
   query: string,
-  mode: ResearchMode = 'balanced',
+  mode: ResearchMode,
 ): Promise<ResearchResult> {
   const stream = await client.agent.research({ query, mode } as never)
   const data = (await drainStream(stream as never, (d) => d)) as
@@ -45,6 +44,26 @@ async function researchToReport(
   return {
     report: data?.report ?? '',
     sources: pages.map((p) => ({ title: p.title ?? '(untitled)', url: p.url })),
+  }
+}
+
+/**
+ * Run a /research query and normalize it to { report, sources }. Starts in the
+ * requested mode; if `fast` errors or returns an empty report, it escalates to
+ * `balanced` once so a section never fails just because fast search came up dry.
+ */
+async function researchToReport(
+  client: Tabstack,
+  query: string,
+  mode: ResearchMode = 'balanced',
+): Promise<ResearchResult> {
+  try {
+    const result = await runResearch(client, query, mode)
+    if (result.report.trim() || mode !== 'fast') return result
+    return await runResearch(client, query, 'balanced')
+  } catch (e) {
+    if (mode === 'fast') return await runResearch(client, query, 'balanced')
+    throw e
   }
 }
 

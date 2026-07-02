@@ -11,6 +11,7 @@ import {
   collectStrengths,
   collectHowToWin,
   collectICP,
+  withRetry,
 } from './collectors'
 
 type OnProgress = (message: string) => void
@@ -87,7 +88,8 @@ export async function* buildBrief(
       const onProgress: OnProgress = (message) =>
         ch.push({ id: t.id, status: 'progress', message })
       try {
-        const data = await t.run(onProgress)
+        // Retry a few times before the section degrades to Unavailable.
+        const data = await withRetry(() => t.run(onProgress))
         results[i] = data
         if (t.id === 'snapshot') {
           // Snapshot renders only its report, but its cited pages ride along so

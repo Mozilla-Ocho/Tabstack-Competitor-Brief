@@ -70,12 +70,30 @@ async function researchToReport(client: Tabstack, query: string): Promise<Resear
   return runFast(client, query)
 }
 
-export function collectSnapshot(client: Tabstack, url: string): Promise<ResearchResult> {
-  return researchToReport(
-    client,
-    `Give a competitive intelligence snapshot of the company at ${url}: what they do, ` +
-      `their category, when they were founded, HQ, team size, and funding.`,
-  )
+export async function collectSnapshot(client: Tabstack, url: string): Promise<ResearchResult> {
+  const brand = brandFromUrl(url)
+  try {
+    const r = await researchToReport(
+      client,
+      `Give a competitive intelligence snapshot of ${brand} (${url}): what they do, their ` +
+        `category, when they were founded, HQ, team size, and funding.`,
+    )
+    if (r.report.trim()) return r
+  } catch {
+    // fall back to reading their own site below
+  }
+  // Snapshot is the anchor section, so it must never come back empty. If fast
+  // research finds nothing, read the homepage directly for a baseline summary.
+  try {
+    const md = (await client.extract.markdown({ url, metadata: true } as never)) as {
+      content?: string
+    }
+    const content = (md?.content ?? '').trim()
+    if (content) return { report: content.slice(0, 1500), sources: [{ title: brand, url }] }
+  } catch {
+    // ignore; return empty below
+  }
+  return { report: '', sources: [] }
 }
 
 export function collectSentiment(client: Tabstack, url: string): Promise<ResearchResult> {
@@ -126,8 +144,10 @@ export async function collectHiring(client: Tabstack, url: string) {
   const careersUrl = new URL('/careers', url).toString()
   const stream = await client.agent.automate({
     task:
-      'Summarize the open roles listed on this public careers page: how many, and which teams ' +
-      'or functions are hiring. If there are no public roles, say so.',
+      'Look at this public careers page. In two or three sentences, summarize their hiring: how ' +
+      'many open roles, which teams or functions they are concentrated in, and what that signals ' +
+      'about where they are investing. Do not list every individual role. If there are no public ' +
+      'roles, say so.',
     url: careersUrl,
   } as never)
   const answer = await drainStream(

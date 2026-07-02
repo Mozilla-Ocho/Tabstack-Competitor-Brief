@@ -35,9 +35,9 @@ Eleven sections, each built from a live-web call:
 
 ## How it works
 
-The single page posts the URL to `/api/brief`, which orchestrates the five Tabstack endpoints on the server and streams each section back as it completes. Your API key stays server-side and never reaches the browser. Any section that fails degrades on its own so the rest of the brief still finishes.
+Enter your product and a competitor. The app calls Tabstack's endpoints on the server and streams each section into the page as it lands. Your API key never leaves the server, and if a section can't be retrieved it's skipped so the rest of the brief still completes.
 
-All research runs in Tabstack's `fast` mode. Fast returns quickly enough to run inside free serverless tiers like Vercel and Netlify; deeper research modes need long-running infrastructure this template intentionally avoids.
+Research runs in fast mode, so the whole thing runs on free serverless tiers like Vercel or Netlify.
 
 ## Built on
 

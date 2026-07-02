@@ -115,6 +115,29 @@ export const strengthsSchema = {
   },
 } as const
 
+export const activitySchema = {
+  type: 'object',
+  properties: {
+    summary: {
+      type: 'string',
+      description: 'One sentence on what this company has been publishing or announcing lately',
+    },
+    posts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Post/article title' },
+          url: { type: 'string', description: 'Absolute URL to the post' },
+          date: { type: 'string', description: 'Publish date as shown, if any' },
+          summary: { type: 'string', description: 'One-line excerpt or what the post covers' },
+        },
+      },
+      description: 'The 5 most recent blog posts or announcements, newest first. Return at most 5.',
+    },
+  },
+} as const
+
 export const icpSchema = {
   type: 'object',
   properties: {

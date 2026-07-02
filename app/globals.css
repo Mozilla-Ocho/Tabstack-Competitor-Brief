@@ -64,6 +64,12 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.prose-brief img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
 .prose-brief h1,
 .prose-brief h2,
 .prose-brief h3 {

@@ -15,6 +15,22 @@ Open [http://localhost:3000](http://localhost:3000), paste a competitor's URL (f
 
 You need a `TABSTACK_API_KEY`. If you scaffolded this through Stripe Projects (`stripe projects build`), it is provisioned for you. Otherwise, copy `.env.example` to `.env.local` and add a key from [tabstack.ai](https://tabstack.ai).
 
+## Agent-first: `stripe projects build`
+
+This template is built for agents first. With Stripe Projects, an agent goes from nothing to structured competitive intel in two commands, no keys to paste, no browser, no manual setup:
+
+```bash
+stripe projects build      # clones this template AND provisions TABSTACK_API_KEY
+pnpm brief https://you.com https://competitor.com --format json > brief.json
+```
+
+`stripe projects build` scaffolds the app and provisions Tabstack automatically, so the key is already in the environment by the time the agent runs the brief. `pnpm brief` then produces the full brief headlessly.
+
+- **Piped (agent):** emits clean `markdown` (default) or `json`, ready to consume. `--format json` for structured data.
+- **In a terminal (human):** streams a colorized, section-by-section brief; run `--format pretty` explicitly if you're piping but still want it.
+
+And when a human needs it too, the agent can roll out the web app for them (`pnpm dev` locally, or deploy it), same `lib/`, same brief, a UI instead of a terminal. The agent works headless; the human gets the app on demand.
+
 ## What's in the brief
 
 Eleven sections, each built from a live-web call:

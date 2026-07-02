@@ -78,19 +78,24 @@ export async function* buildBrief(
   for (const t of tasks) ch.push({ id: t.id, status: 'pending' })
   ch.push({ id: 'sources', status: 'pending' })
 
-  // The Sources section is derived from the snapshot's cited pages.
-  let snapshot: ResearchResult | null = null
+  // Each fulfilled task's result, kept in task order so the Sources section can
+  // aggregate cited pages across every research-backed section.
+  const results: (unknown | undefined)[] = new Array(tasks.length)
 
   const all = Promise.allSettled(
-    tasks.map(async (t) => {
+    tasks.map(async (t, i) => {
       const onProgress: OnProgress = (message) =>
         ch.push({ id: t.id, status: 'progress', message })
       try {
         const data = await t.run(onProgress)
+        results[i] = data
         if (t.id === 'snapshot') {
-          snapshot = data as ResearchResult
-          // Snapshot's sources are shown in their own section, not here.
-          ch.push({ id: 'snapshot', status: 'done', data: { report: snapshot.report } })
+          // Snapshot's cited pages surface in the Sources section, not here.
+          ch.push({
+            id: 'snapshot',
+            status: 'done',
+            data: { report: (data as ResearchResult).report },
+          })
         } else {
           ch.push({ id: t.id, status: 'done', data })
         }
@@ -101,11 +106,17 @@ export async function* buildBrief(
   )
 
   all.then(() => {
-    ch.push(
-      snapshot
-        ? { id: 'sources', status: 'done', data: { sources: snapshot.sources } }
-        : { id: 'sources', status: 'error', message: 'No sources available' },
-    )
+    // Aggregate every cited page across the research-backed sections (snapshot,
+    // sentiment, how-to-position), deduped by URL, so Sources is populated
+    // whenever any research call cited a page.
+    const seen = new Set<string>()
+    const sources = results
+      .flatMap((data) => {
+        const d = data as { sources?: { title: string; url: string }[] } | undefined
+        return Array.isArray(d?.sources) ? d.sources : []
+      })
+      .filter((s) => s?.url && !seen.has(s.url) && (seen.add(s.url), true))
+    ch.push({ id: 'sources', status: 'done', data: { sources } })
     ch.close()
   })
 

@@ -1,65 +1,98 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+import { SECTION_ORDER, type SectionEvent, type SectionId } from '@/lib/schemas'
+import { SECTION_META } from '@/lib/sectionMeta'
+import { BriefSection } from '@/components/BriefSection'
 
 export default function Home() {
+  const [url, setUrl] = useState('')
+  const [running, setRunning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [events, setEvents] = useState<Record<string, SectionEvent>>({})
+
+  async function run(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setEvents({})
+    setRunning(true)
+    try {
+      const res = await fetch('/api/brief', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      if (!res.ok || !res.body) {
+        const body = await res.json().catch(() => ({ error: 'Request failed.' }))
+        setError(body.error ?? 'Request failed.')
+        return
+      }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.trim()) continue
+          const ev = JSON.parse(line) as SectionEvent
+          setEvents((prev) => ({ ...prev, [ev.id]: ev }))
+        }
+      }
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  const started = Object.keys(events).length > 0
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="mx-auto max-w-3xl px-4 py-12">
+      <h1 className="text-3xl font-bold tracking-tight">Competitor Brief</h1>
+      <p className="mt-2 text-neutral-600">
+        Enter a competitor&apos;s URL. Get a cited brief and, most importantly, how to position against them.
+      </p>
+
+      <form onSubmit={run} className="mt-6 flex gap-2">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          required
+          type="url"
+          placeholder="https://www.firecrawl.dev"
+          className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 outline-none focus:border-black"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <button
+          disabled={running}
+          className="rounded-lg bg-black px-5 py-2 font-medium text-white disabled:opacity-50"
+        >
+          {running ? 'Building…' : 'Build brief'}
+        </button>
+      </form>
+
+      {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+      {started && (
+        <div className="mt-8 space-y-4">
+          {SECTION_ORDER.map((id: SectionId) => (
+            <BriefSection
+              key={id}
+              title={SECTION_META[id].title}
+              hero={SECTION_META[id].hero}
+              event={events[id]}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          ))}
         </div>
-      </main>
-    </div>
-  );
+      )}
+
+      <footer className="mt-12 border-t border-neutral-200 pt-6 text-xs text-neutral-500">
+        Every section is finished output from the live web, powered by Tabstack. Runs on the five
+        Tabstack endpoints: extract, generate, research, and automate.
+      </footer>
+    </main>
+  )
 }

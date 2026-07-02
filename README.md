@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Competitor Brief
 
-## Getting Started
+Enter a competitor's URL and get a deep, cited competitive brief that ends with the section that matters most: **how to position against them.** Built for developers who ship a product and then have to figure out the market around it.
 
-First, run the development server:
+It is a starter app, so it is the foundation you build on, not a one-off script. Every brief runs on [Tabstack](https://tabstack.ai), which returns finished output from the live web in a single API call.
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), paste a competitor's URL, and watch the brief assemble section by section.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You need a `TABSTACK_API_KEY`. If you scaffolded this through Stripe Projects (`stripe projects build`), it is provisioned for you. Otherwise, copy `.env.example` to `.env.local` and add a key from [tabstack.ai](https://tabstack.ai).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## What's in the brief
 
-## Learn More
+Eleven sections, each built from a live-web call:
 
-To learn more about Next.js, take a look at the following resources:
+| Section | What it tells you | Tabstack endpoint |
+| --- | --- | --- |
+| Snapshot | What they do, category, founding, size, funding | `/research` |
+| Positioning & messaging | Tagline, value props, messaging pillars | `/generate/json` |
+| Product | Core products and notable features | `/extract/json` |
+| Pricing | Tiers, prices, what's gated | `/extract/json` |
+| Target customer / ICP | Who they sell to | `/research` |
+| Recent activity | Latest blog posts and changelog | `/extract/markdown` |
+| What people are saying | Real user sentiment from Reddit, Hacker News, Product Hunt, reviews | `/research` |
+| Hiring signals | Open roles, and what that says about their bets | `/automate` |
+| Strengths & gaps | An honest read on both | `/generate/json` |
+| **How to position against them** | Where they're weak, what users complain about, and the opening to own | `/research` |
+| Sources | Every claim, cited | `/research` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The single page posts the URL to `/api/brief`, which orchestrates the five Tabstack endpoints on the server and streams each section back as it completes. Your API key stays server-side and never reaches the browser. Any section that fails degrades on its own so the rest of the brief still finishes.
 
-## Deploy on Vercel
+Research cost scales with depth. This template runs the snapshot and sentiment sections in `fast` mode and the "how to position" synthesis in `balanced` mode. Adjust the modes in `lib/collectors.ts` to trade cost for depth.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Built on
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js](https://nextjs.org) (App Router)
+- [Tabstack SDK](https://www.npmjs.com/package/@tabstack/sdk) for extraction, generation, research, and browser automation

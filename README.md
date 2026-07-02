@@ -53,8 +53,6 @@ Eleven sections. Each one is a live call to the web:
 
 You give it your product and a competitor. The app calls Tabstack on the server and streams each section in as it lands. Your API key never touches the browser. If one section can't be retrieved, it's skipped, and the rest of the brief still finishes.
 
-Research runs in fast mode, so the whole thing runs on free tiers like Vercel or Netlify.
-
 ## Built on
 
 - [Next.js](https://nextjs.org) (App Router)

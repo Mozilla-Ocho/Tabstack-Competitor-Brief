@@ -1,12 +1,47 @@
 'use client'
 import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { type SectionEvent } from '@/lib/schemas'
+import { linkifyCitations, type Source } from '@/lib/citations'
 
-function Markdown({ text, invert }: { text: string; invert?: boolean }) {
+// Custom link renderer: citation links (href `#source-n`) render as a small
+// superscript `[n]` that jumps to the Sources list (CSS `:target` handles the
+// scroll + active outline); everything else renders as a normal external link.
+const mdComponents: Components = {
+  a({ href, children, ...props }) {
+    if (href?.startsWith('#source-')) {
+      return (
+        <a href={href} className="brief-cite" aria-label={`Jump to source ${children}`}>
+          {children}
+        </a>
+      )
+    }
+    return (
+      <a href={href} target="_blank" rel="noreferrer" {...props}>
+        {children}
+      </a>
+    )
+  },
+}
+
+function Markdown({
+  text,
+  invert,
+  sources,
+  citeMap,
+}: {
+  text: string
+  invert?: boolean
+  sources?: Source[]
+  citeMap?: Map<string, number>
+}) {
+  const body = sources && citeMap ? linkifyCitations(text, sources, citeMap) : text
   return (
     <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+        {body}
+      </ReactMarkdown>
     </div>
   )
 }
@@ -26,18 +61,36 @@ function Tags({ items }: { items: unknown[] }) {
   )
 }
 
-function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
+function SectionBody({
+  data,
+  invert,
+  citeMap,
+}: {
+  data: unknown
+  invert?: boolean
+  citeMap?: Map<string, number>
+}) {
   const d = (data ?? {}) as Record<string, unknown>
 
-  if (typeof d.report === 'string' && d.report) return <Markdown text={d.report} invert={invert} />
+  if (typeof d.report === 'string' && d.report)
+    return (
+      <Markdown
+        text={d.report}
+        invert={invert}
+        sources={Array.isArray(d.sources) ? (d.sources as Source[]) : undefined}
+        citeMap={citeMap}
+      />
+    )
 
   if (Array.isArray(d.sources)) {
     const sources = d.sources as { title: string; url: string }[]
     if (!sources.length) return <p className="text-sm text-muted">No sources cited.</p>
     return (
-      <ol className="space-y-2 text-sm">
+      <ol className="space-y-1 text-sm">
         {sources.map((s, i) => (
-          <li key={i} className="flex gap-3">
+          // `id` is the citation anchor target; `:target` (globals.css) outlines
+          // the active source when a [n] marker links here.
+          <li key={i} id={`source-${i + 1}`} className="brief-source flex gap-3 rounded-md px-2 py-1">
             <span className="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
             <a className="text-accent underline decoration-line underline-offset-2 hover:decoration-accent" href={s.url} target="_blank" rel="noreferrer">
               {s.title}
@@ -198,11 +251,13 @@ export function BriefSection({
   title,
   hero,
   event,
+  citeMap,
 }: {
   index: number
   title: string
   hero?: boolean
   event?: SectionEvent
+  citeMap?: Map<string, number>
 }) {
   const status = event?.status ?? 'idle'
   const num = String(index).padStart(2, '0')
@@ -223,7 +278,7 @@ export function BriefSection({
         {status === 'error' && (
           <p className="text-sm text-paper/60">Could not synthesize this section. {event?.message}</p>
         )}
-        {status === 'done' && <SectionBody data={event?.data} invert />}
+        {status === 'done' && <SectionBody data={event?.data} invert citeMap={citeMap} />}
       </section>
     )
   }
@@ -241,7 +296,7 @@ export function BriefSection({
       {status === 'error' && (
         <p className="text-sm text-muted">Could not retrieve this section. {event?.message}</p>
       )}
-      {status === 'done' && <SectionBody data={event?.data} />}
+      {status === 'done' && <SectionBody data={event?.data} citeMap={citeMap} />}
     </section>
   )
 }

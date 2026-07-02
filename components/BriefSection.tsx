@@ -1,15 +1,18 @@
 'use client'
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { type SectionEvent } from '@/lib/schemas'
-import { linkifyCitations, type Source } from '@/lib/citations'
+import { linkifyCitations, type CiteMap, type Source } from '@/lib/citations'
 
-// Custom link renderer: citation links (href `#source-n`) render as a small
-// superscript `[n]` that jumps to the Sources list (CSS `:target` handles the
-// scroll + active outline); everything else renders as a normal external link.
+// Custom link renderer. Citation links (href `#source-n`) render as a small
+// superscript `[n]` that jumps to the Sources list; other in-page anchors
+// (e.g. GFM footnotes) stay in-page; only true external links open a new tab.
+// We set anchor attributes explicitly and never spread react-markdown's props —
+// that would leak its `node` hast object onto the DOM element.
 const mdComponents: Components = {
-  a({ href, children, ...props }) {
+  a({ href, children }) {
     if (href?.startsWith('#source-')) {
       return (
         <a href={href} className="brief-cite" aria-label={`Jump to source ${children}`}>
@@ -17,8 +20,11 @@ const mdComponents: Components = {
         </a>
       )
     }
+    if (href?.startsWith('#')) {
+      return <a href={href}>{children}</a>
+    }
     return (
-      <a href={href} target="_blank" rel="noreferrer" {...props}>
+      <a href={href} target="_blank" rel="noreferrer">
         {children}
       </a>
     )
@@ -34,9 +40,12 @@ function Markdown({
   text: string
   invert?: boolean
   sources?: Source[]
-  citeMap?: Map<string, number>
+  citeMap?: CiteMap
 }) {
-  const body = sources && citeMap ? linkifyCitations(text, sources, citeMap) : text
+  const body = useMemo(
+    () => (sources && citeMap ? linkifyCitations(text, sources, citeMap) : text),
+    [text, sources, citeMap],
+  )
   return (
     <div className={invert ? 'prose-brief prose-invert' : 'prose-brief'}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -68,7 +77,7 @@ function SectionBody({
 }: {
   data: unknown
   invert?: boolean
-  citeMap?: Map<string, number>
+  citeMap?: CiteMap
 }) {
   const d = (data ?? {}) as Record<string, unknown>
 
@@ -83,7 +92,7 @@ function SectionBody({
     )
 
   if (Array.isArray(d.sources)) {
-    const sources = d.sources as { title: string; url: string }[]
+    const sources = d.sources as Source[]
     if (!sources.length) return <p className="text-sm text-muted">No sources cited.</p>
     return (
       <ol className="space-y-1 text-sm">
@@ -257,7 +266,7 @@ export function BriefSection({
   title: string
   hero?: boolean
   event?: SectionEvent
-  citeMap?: Map<string, number>
+  citeMap?: CiteMap
 }) {
   const status = event?.status ?? 'idle'
   const num = String(index).padStart(2, '0')

@@ -110,9 +110,12 @@ body {
   color: var(--color-accent-soft);
 }
 
-/* Smooth scroll to a cited source and outline the active one. */
-html {
-  scroll-behavior: smooth;
+/* Smooth scroll to a cited source and outline the active one. Respect users
+   who prefer reduced motion — they get an instant jump. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 .brief-source {
   scroll-margin-top: 1.5rem;

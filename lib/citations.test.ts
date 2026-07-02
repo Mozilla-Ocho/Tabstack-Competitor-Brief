@@ -47,6 +47,13 @@ describe('linkifyCitations', () => {
     )
   })
 
+  it('does not rewrite link-reference definitions', () => {
+    // `[1]:` starts a markdown reference definition — leave it intact.
+    expect(linkifyCitations('Body [1].\n\n[1]: https://b.com', sectionSources, global)).toBe(
+      'Body [2](#source-2).\n\n[1]: https://b.com',
+    )
+  })
+
   it('leaves markers whose URL is absent from the global list', () => {
     const out = linkifyCitations('Z [1].', [{ title: 'D', url: 'https://d.com' }], global)
     expect(out).toBe('Z [1].')

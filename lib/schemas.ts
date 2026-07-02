@@ -106,7 +106,8 @@ export const strengthsSchema = {
     gaps: {
       type: 'array',
       items: { type: 'string' },
-      description: 'Weaknesses or things left unaddressed',
+      description:
+        'Likely weaknesses, blind spots, or under-served areas a competitor could exploit, inferred even if not stated on the page',
     },
   },
 } as const

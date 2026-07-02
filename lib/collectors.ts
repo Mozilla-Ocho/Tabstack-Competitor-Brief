@@ -30,6 +30,17 @@ async function drainStream(
   return result
 }
 
+/** Best-effort brand name from a URL: https://www.tabstack.ai -> "Tabstack". */
+function brandFromUrl(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    const name = host.split('.')[0]
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return url
+  }
+}
+
 async function runFast(client: Tabstack, query: string): Promise<ResearchResult> {
   const stream = await client.agent.research({ query, mode: 'fast' } as never)
   const data = (await drainStream(stream as never, (d) => d)) as
@@ -68,11 +79,13 @@ export function collectSnapshot(client: Tabstack, url: string): Promise<Research
 }
 
 export function collectSentiment(client: Tabstack, url: string): Promise<ResearchResult> {
+  const brand = brandFromUrl(url)
   return researchToReport(
     client,
-    `What do real users say about the company at ${url}? Summarize sentiment and recurring ` +
-      `themes from Reddit, Hacker News, Product Hunt, and software review sites: what people ` +
-      `praise, and what they complain about.`,
+    `What do real users say about ${brand} (${url})? Search Product Hunt for their launch and ` +
+      `reviews, Reddit and Hacker News threads that mention them, and software review sites like ` +
+      `G2 and Capterra. Summarize recurring praise and complaints. Treat their own website as ` +
+      `not independent and say so if that is the only source.`,
   )
 }
 
@@ -154,6 +167,9 @@ export function collectStrengths(client: Tabstack, url: string) {
     url,
     json_schema: strengthsSchema,
     instructions:
-      'From this page, list what this company does well and where their positioning is weak or unaddressed.',
+      'Analyze this company from its page. List their genuine strengths. Then, thinking like a ' +
+      'competitor, infer their most likely gaps, blind spots, or under-served areas even if the ' +
+      'page does not state them (a company never advertises its own weaknesses). Always return ' +
+      'at least three concrete gaps.',
   } as never)
 }

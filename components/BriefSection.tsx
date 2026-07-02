@@ -62,7 +62,7 @@ function SectionBody({ data, invert }: { data: unknown; invert?: boolean }) {
   if (typeof d.summary === 'string') return <p className="text-[0.95rem] leading-relaxed text-ink/85">{d.summary}</p>
 
   if (typeof d.content === 'string')
-    return <Markdown text={d.content.slice(0, 1400) + (d.content.length > 1400 ? '…' : '')} invert={invert} />
+    return <Markdown text={d.content.slice(0, 4000) + (d.content.length > 4000 ? '\n\n…' : '')} invert={invert} />
 
   if (d.tagline || d.valueProps || d.messagingPillars) {
     return (

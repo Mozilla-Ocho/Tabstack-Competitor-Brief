@@ -18,19 +18,34 @@ export default function Home() {
 
   async function copy(kind: 'md' | 'json') {
     const text = kind === 'md' ? toMarkdown(submittedUrl, events) : toJSON(submittedUrl, events)
-    await navigator.clipboard.writeText(text)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Clipboard API is blocked outside secure contexts (e.g. viewing via a
+      // LAN IP). Fall back to a hidden textarea + execCommand.
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
     setCopied(kind)
     setTimeout(() => setCopied(null), 1800)
   }
 
   function downloadMarkdown() {
-    const blob = new Blob([toMarkdown(submittedUrl, events)], { type: 'text/markdown' })
+    const blob = new Blob([toMarkdown(submittedUrl, events)], { type: 'text/markdown;charset=utf-8' })
     const href = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = href
     a.download = `competitor-brief-${hostSlug(submittedUrl)}.md`
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(href)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(href), 1000)
   }
 
   async function run(e: React.FormEvent) {

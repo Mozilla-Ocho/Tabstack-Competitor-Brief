@@ -37,7 +37,7 @@ Eleven sections, each built from a live-web call:
 
 The single page posts the URL to `/api/brief`, which orchestrates the five Tabstack endpoints on the server and streams each section back as it completes. Your API key stays server-side and never reaches the browser. Any section that fails degrades on its own so the rest of the brief still finishes.
 
-Research cost scales with depth. This template runs the snapshot and sentiment sections in `fast` mode and the "how to position" synthesis in `balanced` mode. Adjust the modes in `lib/collectors.ts` to trade cost for depth.
+All research runs in Tabstack's `fast` mode. Fast returns quickly enough to run inside free serverless tiers like Vercel and Netlify; deeper research modes need long-running infrastructure this template intentionally avoids.
 
 ## Built on
 

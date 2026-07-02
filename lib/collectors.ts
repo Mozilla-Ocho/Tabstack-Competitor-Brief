@@ -29,14 +29,8 @@ async function drainStream(
   return result
 }
 
-type ResearchMode = 'fast' | 'balanced'
-
-async function runResearch(
-  client: Tabstack,
-  query: string,
-  mode: ResearchMode,
-): Promise<ResearchResult> {
-  const stream = await client.agent.research({ query, mode } as never)
+async function runFast(client: Tabstack, query: string): Promise<ResearchResult> {
+  const stream = await client.agent.research({ query, mode: 'fast' } as never)
   const data = (await drainStream(stream as never, (d) => d)) as
     | { report?: string; metadata?: { citedPages?: { title?: string; url: string }[] } }
     | undefined
@@ -48,23 +42,20 @@ async function runResearch(
 }
 
 /**
- * Run a /research query and normalize it to { report, sources }. Starts in the
- * requested mode; if `fast` errors or returns an empty report, it escalates to
- * `balanced` once so a section never fails just because fast search came up dry.
+ * Run a /research query in `fast` mode and normalize it to { report, sources }.
+ * Fast is the only mode used: it returns quickly enough to run inside free
+ * serverless tiers (Vercel, Netlify). Deeper modes need long-running
+ * infrastructure this template intentionally avoids. If a fast run errors or
+ * comes back empty, we retry fast once before letting the section degrade.
  */
-async function researchToReport(
-  client: Tabstack,
-  query: string,
-  mode: ResearchMode = 'balanced',
-): Promise<ResearchResult> {
+async function researchToReport(client: Tabstack, query: string): Promise<ResearchResult> {
   try {
-    const result = await runResearch(client, query, mode)
-    if (result.report.trim() || mode !== 'fast') return result
-    return await runResearch(client, query, 'balanced')
-  } catch (e) {
-    if (mode === 'fast') return await runResearch(client, query, 'balanced')
-    throw e
+    const result = await runFast(client, query)
+    if (result.report.trim()) return result
+  } catch {
+    // fall through to a single retry
   }
+  return runFast(client, query)
 }
 
 export function collectSnapshot(client: Tabstack, url: string): Promise<ResearchResult> {
@@ -72,7 +63,6 @@ export function collectSnapshot(client: Tabstack, url: string): Promise<Research
     client,
     `Give a competitive intelligence snapshot of the company at ${url}: what they do, ` +
       `their category, when they were founded, HQ, team size, and funding.`,
-    'fast',
   )
 }
 
@@ -82,7 +72,6 @@ export function collectSentiment(client: Tabstack, url: string): Promise<Researc
     `What do real users say about the company at ${url}? Summarize sentiment and recurring ` +
       `themes from Reddit, Hacker News, Product Hunt, and software review sites: what people ` +
       `praise, and what they complain about.`,
-    'fast',
   )
 }
 

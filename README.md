@@ -1,23 +1,39 @@
 # Competitor Brief
 
-Enter a competitor's URL and get a deep, cited competitive brief that ends with the section that matters most: **how to position against them.** Built for developers who ship a product and then have to figure out the market around it.
+Competitor Brief turns two URLs, your product and a competitor's, into a cited competitive intelligence report: their snapshot, positioning, product, pricing, target customer, recent activity, hiring signals, and what real users actually say, ending with how to position against them.
 
-It is a starter app, so it is the foundation you build on, not a one-off script. Every brief runs on [Tabstack](https://tabstack.ai), which returns finished output from the live web in a single API call.
+It's a Stripe Projects build template. Agents run the full brief from the CLI; humans get the same brief as a web app. Every section is a live [Tabstack](https://tabstack.ai) call; the research runs come cited.
 
-## Run it
+## Agent-first: `stripe projects build`
+
+Agents come first here. With Stripe Projects, an agent goes from nothing to real competitive intel in two commands. No keys to paste. No browser. No setup.
+
+```bash
+stripe projects build      # clones this template AND provisions TABSTACK_API_KEY
+pnpm brief https://you.com https://competitor.com --format json > brief.json
+```
+
+`stripe projects build` scaffolds the app and provisions Tabstack for you, so the key is already in the environment by the time the agent runs the brief. `pnpm brief` does the rest, headless.
+
+- **Piped:** clean `markdown` (default) or `json`, ready to use. Reach for `--format json` when you want structured data.
+- **In a terminal:** a colorized brief, section by section.
+
+And when a human wants in, the agent rolls out the web app for them (`pnpm dev`, or deploy it). Same `lib/`, same brief, a UI instead of a terminal. The agent works headless. The human gets the app on demand.
+
+## The web app (for humans)
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), paste a competitor's URL (for example `https://tabstack.ai`), and watch the brief assemble section by section.
+Open [http://localhost:3000](http://localhost:3000), drop in your product and a competitor, and watch the brief assemble section by section.
 
-You need a `TABSTACK_API_KEY`. If you scaffolded this through Stripe Projects (`stripe projects build`), it is provisioned for you. Otherwise, copy `.env.example` to `.env.local` and add a key from [tabstack.ai](https://tabstack.ai).
+You need a `TABSTACK_API_KEY`. If you came in through `stripe projects build`, it's already provisioned. Running the web app on your own? Copy `.env.example` to `.env.local` and add a key from [tabstack.ai](https://tabstack.ai).
 
 ## What's in the brief
 
-Eleven sections, each built from a live-web call:
+Eleven sections. Each one is a live call to the web:
 
 | Section | What it tells you | Tabstack endpoint |
 | --- | --- | --- |
@@ -35,9 +51,7 @@ Eleven sections, each built from a live-web call:
 
 ## How it works
 
-Enter your product and a competitor. The app calls Tabstack's endpoints on the server and streams each section into the page as it lands. Your API key never leaves the server, and if a section can't be retrieved it's skipped so the rest of the brief still completes.
-
-Research runs in fast mode, so the whole thing runs on free serverless tiers like Vercel or Netlify.
+You give it your product and a competitor. The app calls Tabstack on the server and streams each section in as it lands. Your API key never touches the browser. If one section can't be retrieved, it's skipped, and the rest of the brief still finishes.
 
 ## Built on
 

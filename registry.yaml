@@ -11,7 +11,7 @@ ref: 38715611042084558c3d13c2607957377378a2bb
 metadata:
   name: Competitor Brief
   description: Cited competitive-intelligence brief from two URLs, via Tabstack
-  owner: Tabstack
+  owner: tabstack
   tags:
     - Competitive Intelligence
     - AI

@@ -2,16 +2,16 @@ guided:
   category: developer_tool
   framework: nextjs
 template: tabstack/competitor-brief
-variant: clear-signal
+variant: tabstack-competitor-brief
 default: true
 variant_description: Next.js • Tabstack SDK
 install_command: pnpm install
 repo: https://github.com/Mozilla-Ocho/Tabstack-Competitor-Brief/tree/main
-ref: c91b7c8c621885b46a6a7cea3d4df4a0e2dacae8
+ref: 38715611042084558c3d13c2607957377378a2bb
 metadata:
   name: Competitor Brief
   description: Cited competitive-intelligence brief from two URLs, via Tabstack
-  owner: Tabstack
+  owner: tabstack
   tags:
     - Competitive Intelligence
     - AI

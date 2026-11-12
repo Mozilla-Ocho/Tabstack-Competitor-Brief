@@ -57,3 +57,7 @@ You give it your product and a competitor. The app calls Tabstack on the server 
 
 - [Next.js](https://nextjs.org) (App Router)
 - [Tabstack SDK](https://www.npmjs.com/package/@tabstack/sdk) for extraction, generation, research, and browser automation
+
+## Feedback
+
+Report a problem or request a feature in [tabstack-feedback](https://github.com/Mozilla-Ocho/tabstack-feedback/issues/new/choose). Include the commit you are running and the `x-trace-id` from the failing response when relevant. Never paste API keys or personal data into an issue.

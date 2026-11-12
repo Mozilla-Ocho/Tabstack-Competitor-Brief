@@ -60,4 +60,4 @@ You give it your product and a competitor. The app calls Tabstack on the server 
 
 ## Feedback
 
-Report a problem or request a feature in [tabstack-feedback](https://github.com/Mozilla-Ocho/tabstack-feedback/issues/new/choose). Include the commit you are running and the error message you saw. Never paste API keys or personal data into an issue.
+Report a Tabstack problem or request a feature in [tabstack-feedback](https://github.com/Mozilla-Ocho/tabstack-feedback/issues/new/choose). For a bug in this app's own code, open an issue in this repo. Include the commit you are running and the error message you saw. Never paste API keys or personal data into an issue.
